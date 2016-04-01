@@ -1,0 +1,33 @@
+{
+  "name": "ios-triage",
+  "version": "0.1.0",
+  "description": "CLI for iOS incident response",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahoog42/ios-triage.git"
+  },
+  "bin": {
+    "ios-triage": "./index.js"
+  },
+  "keywords": [
+    "ios",
+    "ir",
+    "incident response",
+    "mobile",
+    "triage",
+    "cli"
+  ],
+  "author": "Andrew Hoog",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ahoog42/ios-triage/issues"
+  },
+  "homepage": "https://github.com/ahoog42/ios-triage#readme",
+  "dependencies": {
+    "commander": "^2.9.0"
+  }
+}
