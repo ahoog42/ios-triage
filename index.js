@@ -32,12 +32,45 @@ program
 program.parse(process.argv);
 
 function collectArtifacts () {
-  var deviceInfo = getDeviceInfo();
-  //getDeviceInfo(function printToScreen(error, data) {
-  //  if (error) return console.error(error);
-  //  console.log('[ ' + data.toString() + ']');
-  //});
-}
+  var uuid = getUUID(function getDeviceData(error, data) {
+    if (error) {
+      return console.error(error);
+    } else {
+      console.log('calling deviceinfo for uuid ' + data);
+      var deviceInfo = getDeviceInfo();
+    };
+  }); 
+};
+
+function getUUID (callback) {
+  var retval = ''; 
+  var uuid = spawn('idevice_id', ['-l']);
+
+  uuid.stdout.on('data', (chunk) => {
+    retval = chunk;
+  });
+
+  uuid.on('close', code => {
+    /*  
+    Unfortunately idevice_id returns a 0 in all situations I checked
+    which differs from how ideviceinfo works. If you call idevice_id with
+    an invalid parameter or no deivce is attached, it still returns a 0.
+    I'm going to keep this return code != 0 in here for now in case they fix
+    in the future. The work around is to test the length for retval and if it is
+    41, then we have a UUID returned!
+    */
+    if (retval.length === 41) {
+      callback(null, retval);
+    } else {
+      if (retval.length === 0) {
+        callback(new Error("Please ensure an iDevice is connected via USB and authorized"));
+      } else {
+        callback(new Error(retval));
+      };
+    };
+  });
+};
+ 
 
 function getDeviceInfo () { 
 
