@@ -11,7 +11,7 @@ var wd = '/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511b
 program
   .version('0.1.0')
   .description('Incident response tool for iPhone or iPad')
-  .option('-o, --output [directory]', 'Set output [directory]')
+  .option('-o, --output [directory]', 'Set output directory')
   .option('-v, --verbose', 'Display verbose output')
 
 program
@@ -31,37 +31,72 @@ program
 
 program.parse(process.argv);
 
+// if program was called with no arguments, show help.
+if (program.args.length === 0) program.help();
+
 function collectArtifacts () {
-  var uuid = getUUID(function getDeviceData(error, data) {
-    if (error) {
-      return console.error(error);
-    } else {
-      console.log('calling deviceinfo for uuid ' + data);
+  console.log('output dir: ' + program.output);
+  // let's first get the UDID 
+  getUDID(function getDeviceData(error, udid) {
+    if (error) { return console.error('error in getUDID: ' + error); }
+    createOutputDir(program.output, udid, function (error, results) {
+      if (error) { return console.error('error in createOutputDir: ' + error); }
+      console.log('createOutputDir results: ' + results );
+      console.log('calling deviceinfo for udid ' + udid);
       var deviceInfo = getDeviceInfo();
-    };
+    });
   }); 
 };
 
-function getUUID (callback) {
-  var retval = ''; 
-  var uuid = spawn('idevice_id', ['-l']);
+function createOutputDir (dir, udid, cb) {
+/* 
+checks to see if the user-provided output directory exists
+if not, errors and tells user to create directory
+if the dir exists and the udid also exists, tells users to
+specify another directory so it won't overwrite triage data
+*/
 
-  uuid.stdout.on('data', (chunk) => {
+if ( dir != undefined ) {
+    // test to see if the user supplied path is valid
+    fs.stat(dir, function(err, stats) {
+        if (err) {
+              cb(new Error(err));
+        } else {
+            if (stats.isDirectory()) {
+                console.log('user supplied dir [' + dir + '] is a directory]. need to check for udid dir');
+                cb(null, 'time to check and create udid dir');
+            } else {
+                cb(new Error('Invalid output directory supplied: ' + dir));
+            }
+        }
+    });
+}
+};
+
+function getUDID (callback) {
+  var retval = ''; 
+  var udid = spawn('idevice_id', ['-l']);
+
+  udid.stdout.on('data', (chunk) => {
+    // FIXME: if idevice_id sires the data event more than once the this would overwrite
+    // retval which is likley problematic
     retval = chunk;
   });
 
-  uuid.on('close', code => {
+  udid.on('close', code => {
     /*  
     Unfortunately idevice_id returns a 0 in all situations I checked
     which differs from how ideviceinfo works. If you call idevice_id with
     an invalid parameter or no deivce is attached, it still returns a 0.
     I'm going to keep this return code != 0 in here for now in case they fix
     in the future. The work around is to test the length for retval and if it is
-    41, then we have a UUID returned!
+    41, then we have a UDID returned!
     */
     if (retval.length === 41) {
+      // found a valid udid so return null error and uuid value
       callback(null, retval);
     } else {
+      // encountered some sort of error. If 0 len then no device attached, otherwise something else
       if (retval.length === 0) {
         callback(new Error("Please ensure an iDevice is connected via USB and authorized"));
       } else {
