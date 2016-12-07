@@ -6,7 +6,7 @@ var fs = require('fs');
 var os = require('os');
 
 const spawn = require('child_process').spawn;
-var wd = '/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf';
+var wd = '/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/';
 
 program
   .version('0.1.0')
@@ -35,42 +35,13 @@ program.parse(process.argv);
 if (program.args.length === 0) program.help();
 
 function collectArtifacts () {
-  console.log('output dir: ' + program.output);
   // let's first get the UDID 
   getUDID(function getDeviceData(error, udid) {
-    if (error) { return console.error('error in getUDID: ' + error); }
-    createOutputDir(program.output, udid, function (error, results) {
-      if (error) { return console.error('error in createOutputDir: ' + error); }
-      console.log('createOutputDir results: ' + results );
-      console.log('calling deviceinfo for udid ' + udid);
-      var deviceInfo = getDeviceInfo();
+    if (error) { return console.error(error); }
+    //console.log('createOutputDir results: ' + results );
+    console.log('calling deviceinfo for udid ' + udid);
+    var deviceInfo = getDeviceInfo(udid);
     });
-  }); 
-};
-
-function createOutputDir (dir, udid, cb) {
-/* 
-checks to see if the user-provided output directory exists
-if not, errors and tells user to create directory
-if the dir exists and the udid also exists, tells users to
-specify another directory so it won't overwrite triage data
-*/
-
-if ( dir != undefined ) {
-    // test to see if the user supplied path is valid
-    fs.stat(dir, function(err, stats) {
-        if (err) {
-              cb(new Error(err));
-        } else {
-            if (stats.isDirectory()) {
-                console.log('user supplied dir [' + dir + '] is a directory]. need to check for udid dir');
-                cb(null, 'time to check and create udid dir');
-            } else {
-                cb(new Error('Invalid output directory supplied: ' + dir));
-            }
-        }
-    });
-}
 };
 
 function getUDID (callback) {
@@ -92,6 +63,7 @@ function getUDID (callback) {
     in the future. The work around is to test the length for retval and if it is
     41, then we have a UDID returned!
     */
+    console.log("in getUDID, retval = " + retval);
     if (retval.length === 41) {
       // found a valid udid so return null error and uuid value
       callback(null, retval);
@@ -107,7 +79,7 @@ function getUDID (callback) {
 };
  
 
-function getDeviceInfo () { 
+function getDeviceInfo (udid) { 
 
   var file_name = 'ideviceinfo.txt';
   var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
