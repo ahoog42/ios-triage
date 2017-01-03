@@ -41,6 +41,7 @@ function collectArtifacts () {
     //console.log('createOutputDir results: ' + results );
     console.log('calling deviceinfo for udid ' + udid);
     var deviceInfo = getDeviceInfo(udid);
+    var installedApps = getInstalledApps();
     });
 };
 
@@ -49,7 +50,7 @@ function getUDID (callback) {
   var udid = spawn('idevice_id', ['-l']);
 
   udid.stdout.on('data', (chunk) => {
-    // FIXME: if idevice_id sires the data event more than once the this would overwrite
+    // FIXME: if idevice_id fires the data event more than once the this would overwrite
     // retval which is likley problematic
     retval = chunk;
   });
@@ -58,7 +59,7 @@ function getUDID (callback) {
     /*  
     Unfortunately idevice_id returns a 0 in all situations I checked
     which differs from how ideviceinfo works. If you call idevice_id with
-    an invalid parameter or no deivce is attached, it still returns a 0.
+    an invalid parameter or no device is attached, it still returns a 0.
     I'm going to keep this return code != 0 in here for now in case they fix
     in the future. The work around is to test the length for retval and if it is
     41, then we have a UDID returned!
@@ -78,7 +79,6 @@ function getUDID (callback) {
   });
 };
  
-
 function getDeviceInfo (udid) { 
 
   var file_name = 'ideviceinfo.txt';
@@ -104,6 +104,35 @@ function getDeviceInfo (udid) {
   ideviceinfo.on('close', function(code) {
     if (code != 0) {
       console.error('ideviceinfo returned error code ' + code);
+    }
+  });
+};
+
+function getInstalledApps () { 
+
+  var file_name = 'installed-apps.xml';
+  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+
+  // call ideviceinfo binary
+  var ideviceinstaller = spawn('ideviceinstaller', ['--list-apps', '-o','list_all', '-o', 'xml']);
+
+  // on data events, write chunks to file
+  ideviceinstaller.stdout.on('data', (chunk) => { 
+    file.write(chunk); 
+  });
+
+  // after Stream ends, close the file, inform user of saved file
+  ideviceinstaller.stdout.on('end', () => { 
+    file.end(); 
+    console.log('iOS Device installed apps saved to: ' + wd + '/artifacts/' + file_name);
+  });
+
+  // should this event be on exit or on close?
+  // per documentation, not all Streams emit a close event
+  // https://nodejs.org/api/stream.html#stream_event_close
+  ideviceinstaller.on('close', function(code) {
+    if (code != 0) {
+      console.error('ideviceinstaller returned error code ' + code);
     }
   });
 };
