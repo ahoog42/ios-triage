@@ -6,7 +6,7 @@ var fs = require('fs');
 var os = require('os');
 var xml2js = require('xml2js');
 
-const spawn = require('child_process').spawn;
+const child_process = require('child_process');
 var wd = '/Users/hiro/Desktop/ios-triage';
 
 program
@@ -51,7 +51,7 @@ function collectArtifacts () {
 
 function getUDID (callback) {
   var retval = ''; 
-  var udid = spawn('idevice_id', ['-l']);
+  var udid = child_process.spawn('idevice_id', ['-l']);
 
   udid.stdout.on('data', (chunk) => {
     // FIXME: if idevice_id fires the data event more than once the this would overwrite
@@ -91,7 +91,7 @@ function getDeviceInfo(udid) {
   var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
 
   // call ideviceinfo binary
-  var ideviceinfo = spawn('ideviceinfo', []);
+  var ideviceinfo = child_process.spawn('ideviceinfo', []);
 
   // on data events, write chunks to file
   ideviceinfo.stdout.on('data', (chunk) => { 
@@ -119,8 +119,8 @@ function getInstalledApps(udid) {
   var file_name = 'installed-apps.xml';
   var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
 
-  // call ideviceinfo binary
-  var ideviceinstaller = spawn('ideviceinstaller', ['--list-apps', '-o','list_all', '-o', 'xml']);
+  // call ideviceinstaller binary
+  var ideviceinstaller = child_process.spawn('ideviceinstaller', ['--list-apps', '-o','list_all', '-o', 'xml']);
 
   // on data events, write chunks to file
   ideviceinstaller.stdout.on('data', (chunk) => { 
@@ -146,7 +146,7 @@ function listProvisioningProfiles(udid) {
   var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
 
   // call ideviceprovision binary
-  var ideviceprovision = spawn('ideviceprovision', ['list']);
+  var ideviceprovision = child_process.spawn('ideviceprovision', ['list']);
 
   // on data events, write chunks to file
   ideviceprovision.stdout.on('data', (chunk) => { 
