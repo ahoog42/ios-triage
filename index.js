@@ -7,7 +7,7 @@ var os = require('os');
 var xml2js = require('xml2js');
 
 const spawn = require('child_process').spawn;
-var wd = '/Users/hiro/Desktop/ios-triage/';
+var wd = '/Users/hiro/Desktop/ios-triage';
 
 program
   .version('0.1.0')
@@ -42,7 +42,7 @@ function collectArtifacts () {
     console.log('calling deviceinfo for udid ' + udid);
     var deviceInfo = getDeviceInfo(udid);
     var installedApps = getInstalledApps(udid);
-    // ideviceprovision list : provisioning profiles installed
+    var provisioningProfiles = listProvisioningProfiles(udid);
     // idevicebackup2 backup --full . (make backup dir)
     // idevicecrashreport -e -k . 
     // idevicesyslog : start and keep running until extraction done, allow user to set amount of time to run to track overnight
@@ -68,16 +68,16 @@ function getUDID (callback) {
     in the future. The work around is to test the length for retval and if it is
     41, then we have a UDID returned!
     */
-    console.log("in getUDID, retval = " + retval);
     if (retval.length === 41) {
       // found a valid udid so return null error and uuid value
       // first let's make this a string and trim any newlines
       var udid_str = String.fromCharCode.apply(null, retval);
+      console.log("Authorized iDevice found, UDID: " + udid_str.trim());
       callback(null, udid_str.trim());
     } else {
       // encountered some sort of error. If 0 len then no device attached, otherwise something else
       if (retval.length === 0) {
-        callback(new Error("Please ensure an iDevice is connected via USB and authorized"));
+        callback(new Error("No authorized iDevice found. Plug in and authorize a device first."));
       } else {
         callback(new Error(retval));
       };
@@ -85,7 +85,7 @@ function getUDID (callback) {
   });
 };
  
-function getDeviceInfo (udid) { 
+function getDeviceInfo(udid) { 
 
   var file_name = 'ideviceinfo.txt';
   var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
@@ -114,7 +114,7 @@ function getDeviceInfo (udid) {
   });
 };
 
-function getInstalledApps (udid) { 
+function getInstalledApps(udid) { 
 
   var file_name = 'installed-apps.xml';
   var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
@@ -133,12 +133,35 @@ function getInstalledApps (udid) {
     console.log('iOS Device installed apps saved to: ' + file.path);
   });
 
-  // should this event be on exit or on close?
-  // per documentation, not all Streams emit a close event
-  // https://nodejs.org/api/stream.html#stream_event_close
   ideviceinstaller.on('close', function(code) {
     if (code != 0) {
       console.error('ideviceinstaller returned error code ' + code);
+    }
+  });
+};
+
+function listProvisioningProfiles(udid) { 
+
+  var file_name = 'provisioning-profiles.txt';
+  var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
+
+  // call ideviceprovision binary
+  var ideviceprovision = spawn('ideviceprovision', ['list']);
+
+  // on data events, write chunks to file
+  ideviceprovision.stdout.on('data', (chunk) => { 
+    file.write(chunk); 
+  });
+
+  // after Stream ends, close the file, inform user of saved file
+  ideviceprovision.stdout.on('end', () => { 
+    file.end(); 
+    console.log('Installed provisioning profiles saved to: ' + file.path);
+  });
+
+  ideviceprovision.on('close', function(code) {
+    if (code != 0) {
+      console.error('ideviceprovision returned error code ' + code);
     }
   });
 };
