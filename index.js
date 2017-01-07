@@ -36,10 +36,11 @@ program.parse(process.argv);
 if (program.args.length === 0) program.help();
 
 function collectArtifacts () {
-  // let's first get the UDID 
-  getUDID(function getDeviceData(error, udid) {
+  // let's first get the UDID...if we can't do this successfully, we have a problem 
+  getUDID(function (error, udid) {
     if (error) { return console.error(error); }
-    console.log('calling deviceinfo for udid ' + udid);
+
+    // no error getting UDID so time to fetch data
     var deviceInfo = getDeviceInfo(udid);
     var installedApps = getInstalledApps(udid);
     var provisioningProfiles = listProvisioningProfiles(udid);
