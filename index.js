@@ -4,9 +4,10 @@
 var program = require('commander');
 var fs = require('fs');
 var os = require('os');
+var xml2js = require('xml2js');
 
 const spawn = require('child_process').spawn;
-var wd = '/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/';
+var wd = '/Users/hiro/Desktop/ios-triage/';
 
 program
   .version('0.1.0')
@@ -38,11 +39,14 @@ function collectArtifacts () {
   // let's first get the UDID 
   getUDID(function getDeviceData(error, udid) {
     if (error) { return console.error(error); }
-    //console.log('createOutputDir results: ' + results );
     console.log('calling deviceinfo for udid ' + udid);
     var deviceInfo = getDeviceInfo(udid);
-    var installedApps = getInstalledApps();
-    });
+    var installedApps = getInstalledApps(udid);
+    // ideviceprovision list : provisioning profiles installed
+    // idevicebackup2 backup --full . (make backup dir)
+    // idevicecrashreport -e -k . 
+    // idevicesyslog : start and keep running until extraction done, allow user to set amount of time to run to track overnight
+  });
 };
 
 function getUDID (callback) {
@@ -67,7 +71,9 @@ function getUDID (callback) {
     console.log("in getUDID, retval = " + retval);
     if (retval.length === 41) {
       // found a valid udid so return null error and uuid value
-      callback(null, retval);
+      // first let's make this a string and trim any newlines
+      var udid_str = String.fromCharCode.apply(null, retval);
+      callback(null, udid_str.trim());
     } else {
       // encountered some sort of error. If 0 len then no device attached, otherwise something else
       if (retval.length === 0) {
@@ -82,7 +88,7 @@ function getUDID (callback) {
 function getDeviceInfo (udid) { 
 
   var file_name = 'ideviceinfo.txt';
-  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
 
   // call ideviceinfo binary
   var ideviceinfo = spawn('ideviceinfo', []);
@@ -95,7 +101,7 @@ function getDeviceInfo (udid) {
   // after Stream ends, close the file, inform user of saved file
   ideviceinfo.stdout.on('end', () => { 
     file.end(); 
-    console.log('iOS Device info saved to: ' + wd + '/artifacts/' + file_name);
+    console.log('iOS Device info saved to: ' + file.path);
   });
 
   // should this event be on exit or on close?
@@ -108,10 +114,10 @@ function getDeviceInfo (udid) {
   });
 };
 
-function getInstalledApps () { 
+function getInstalledApps (udid) { 
 
   var file_name = 'installed-apps.xml';
-  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
 
   // call ideviceinfo binary
   var ideviceinstaller = spawn('ideviceinstaller', ['--list-apps', '-o','list_all', '-o', 'xml']);
@@ -124,7 +130,7 @@ function getInstalledApps () {
   // after Stream ends, close the file, inform user of saved file
   ideviceinstaller.stdout.on('end', () => { 
     file.end(); 
-    console.log('iOS Device installed apps saved to: ' + wd + '/artifacts/' + file_name);
+    console.log('iOS Device installed apps saved to: ' + file.path);
   });
 
   // should this event be on exit or on close?
@@ -142,6 +148,13 @@ function processArtifacts () {
 }
 
 function generateReport () {
-  console.log("generate report");
+  //console.log("generate report");
+  var parser = new xml2js.Parser();
+  fs.readFile(wd + '/artifacts/installed-apps.xml', function(err, data) {
+    parser.parseString(data, function (err, result) {
+      console.dir(JSON.stringify(result));
+    });
+  });
+
 }
 
