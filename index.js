@@ -41,7 +41,8 @@ function collectArtifacts () {
     if (error) { return console.error(error); }
 
     // no error getting UDID so time to fetch data
-    // start and keep running until extraction done
+
+    // start and keep device syslog running until extraction done
     // in future, maybe allow user to set amount of time to run to track overnight
     var deviceSyslog = getDeviceSyslog(udid);
     var deviceInfo = getDeviceInfo(udid);
@@ -94,7 +95,7 @@ function getDeviceSyslog(udid) {
   var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
 
   // call idevicesyslog binary
-  var idevicesyslog = child_process.spawn('idevicesyslog', []);
+  var idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: 10000 });
 
   // on data events, write chunks to file
   idevicesyslog.stdout.on('data', (chunk) => { 
@@ -115,6 +116,7 @@ function getDeviceSyslog(udid) {
       console.error('idevicesyslog returned error code ' + code);
     }
   });
+  return(idevicesyslog);
 };
 
 function getDeviceInfo(udid) { 
