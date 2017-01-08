@@ -37,6 +37,7 @@ if (program.args.length === 0) program.help();
 
 function collectArtifacts () {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
+  console.log("starting data run at " + new Date().getTime());
   getUDID(function getDeviceData(error, udid) {
     if (error) { return console.error(error); }
 
