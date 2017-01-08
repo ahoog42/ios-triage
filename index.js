@@ -37,16 +37,18 @@ if (program.args.length === 0) program.help();
 
 function collectArtifacts () {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
-  getUDID(function (error, udid) {
+  getUDID(function getDeviceData(error, udid) {
     if (error) { return console.error(error); }
 
     // no error getting UDID so time to fetch data
+    // start and keep running until extraction done
+    // in future, maybe allow user to set amount of time to run to track overnight
+    var deviceSyslog = getDeviceSyslog(udid);
     var deviceInfo = getDeviceInfo(udid);
     var installedApps = getInstalledApps(udid);
     var provisioningProfiles = listProvisioningProfiles(udid);
     // idevicebackup2 backup --full . (make backup dir)
     // idevicecrashreport -e -k . 
-    // idevicesyslog : start and keep running until extraction done, allow user to set amount of time to run to track overnight
   });
 };
 
@@ -85,7 +87,36 @@ function getUDID (callback) {
     };
   });
 };
- 
+
+function getDeviceSyslog(udid) { 
+
+  var file_name = 'syslog.txt';
+  var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
+
+  // call idevicesyslog binary
+  var idevicesyslog = child_process.spawn('idevicesyslog', []);
+
+  // on data events, write chunks to file
+  idevicesyslog.stdout.on('data', (chunk) => { 
+    file.write(chunk); 
+  });
+
+  // after Stream ends, close the file, inform user of saved file
+  idevicesyslog.stdout.on('end', () => { 
+    file.end(); 
+    console.log('iOS Device syslog saved to: ' + file.path);
+  });
+
+  // should this event be on exit or on close?
+  // per documentation, not all Streams emit a close event
+  // https://nodejs.org/api/stream.html#stream_event_close
+  idevicesyslog.on('close', function(code) {
+    if (code != 0) {
+      console.error('idevicesyslog returned error code ' + code);
+    }
+  });
+};
+
 function getDeviceInfo(udid) { 
 
   var file_name = 'ideviceinfo.txt';
