@@ -35,13 +35,25 @@ program.parse(process.argv);
 // if program was called with no arguments, show help.
 if (program.args.length === 0) program.help();
 
+function setWorkingDirectory (useOutputDir, udid) {
+  wd = ""
+  if (userOutputDir) {
+    wd = useOutputDir;
+  } else {
+    wd = __dirname;
+  }
+  wd = wd + "/" + udid;
+  console.log("working directory set to " + wd);
+}
+
 function collectArtifacts () {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
-  console.log("starting data run at " + new Date().getTime());
+  console.log("starting data run in " + __dirname + " at " + new Date().getTime());
   getUDID(function getDeviceData(error, udid) {
     if (error) { return console.error(error); }
 
     // no error getting UDID so time to fetch data
+    wd = setWorkingDirectory(program.output, udid);
 
     // start and keep device syslog running until extraction done
     // in future, maybe allow user to set amount of time to run to track overnight
