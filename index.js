@@ -7,7 +7,6 @@ var os = require('os');
 var xml2js = require('xml2js');
 
 const child_process = require('child_process');
-var wd = '/Users/hiro/Desktop/ios-triage';
 
 program
   .version('0.1.0')
@@ -35,15 +34,16 @@ program.parse(process.argv);
 // if program was called with no arguments, show help.
 if (program.args.length === 0) program.help();
 
-function setWorkingDirectory (useOutputDir, udid) {
-  wd = ""
+function setWorkingDirectory (userOutputDir, udid) {
+  let wd = ""
   if (userOutputDir) {
-    wd = useOutputDir;
+    wd = userOutputDir;
   } else {
     wd = __dirname;
   }
   wd = wd + "/" + udid;
   console.log("working directory set to " + wd);
+  return(wd);
 }
 
 function collectArtifacts () {
@@ -53,14 +53,14 @@ function collectArtifacts () {
     if (error) { return console.error(error); }
 
     // no error getting UDID so time to fetch data
-    wd = setWorkingDirectory(program.output, udid);
+    const wd = setWorkingDirectory(program.output, udid);
 
     // start and keep device syslog running until extraction done
     // in future, maybe allow user to set amount of time to run to track overnight
-    var deviceSyslog = getDeviceSyslog(udid);
-    var deviceInfo = getDeviceInfo(udid);
-    var installedApps = getInstalledApps(udid);
-    var provisioningProfiles = listProvisioningProfiles(udid);
+    var deviceSyslog = getDeviceSyslog(udid, wd);
+    var deviceInfo = getDeviceInfo(udid, wd);
+    var installedApps = getInstalledApps(udid, wd);
+    var provisioningProfiles = listProvisioningProfiles(udid, wd);
     // idevicebackup2 backup --full . (make backup dir)
     // idevicecrashreport -e -k . 
   });
@@ -68,7 +68,7 @@ function collectArtifacts () {
 
 function getUDID (callback) {
   var retval = ''; 
-  var udid = child_process.spawn('idevice_id', ['-l']);
+var udid = child_process.spawn('idevice_id', ['-l']);
 
   udid.stdout.on('data', (chunk) => {
     // FIXME: if idevice_id fires the data event more than once the this would overwrite
@@ -102,10 +102,10 @@ function getUDID (callback) {
   });
 };
 
-function getDeviceSyslog(udid) { 
+function getDeviceSyslog(udid, wd) { 
 
   var file_name = 'syslog.txt';
-  var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
+  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call idevicesyslog binary
   var idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: 10000 });
@@ -132,10 +132,10 @@ function getDeviceSyslog(udid) {
   return(idevicesyslog);
 };
 
-function getDeviceInfo(udid) { 
+function getDeviceInfo(udid, wd) { 
 
   var file_name = 'ideviceinfo.txt';
-  var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
+  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call ideviceinfo binary
   var ideviceinfo = child_process.spawn('ideviceinfo', []);
@@ -161,10 +161,10 @@ function getDeviceInfo(udid) {
   });
 };
 
-function getInstalledApps(udid) { 
+function getInstalledApps(udid, wd) { 
 
   var file_name = 'installed-apps.xml';
-  var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
+  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call ideviceinstaller binary
   var ideviceinstaller = child_process.spawn('ideviceinstaller', ['--list-apps', '-o','list_all', '-o', 'xml']);
@@ -187,10 +187,10 @@ function getInstalledApps(udid) {
   });
 };
 
-function listProvisioningProfiles(udid) { 
+function listProvisioningProfiles(udid, wd) { 
 
   var file_name = 'provisioning-profiles.txt';
-  var file = fs.createWriteStream(wd + '/' + udid + '/artifacts/' + file_name);
+  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call ideviceprovision binary
   var ideviceprovision = child_process.spawn('ideviceprovision', ['list']);
