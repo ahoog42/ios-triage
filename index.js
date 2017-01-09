@@ -5,6 +5,7 @@ var program = require('commander');
 var fs = require('fs');
 var os = require('os');
 var xml2js = require('xml2js');
+var async = require('async');
 
 const child_process = require('child_process');
 
@@ -34,41 +35,68 @@ program.parse(process.argv);
 // if program was called with no arguments, show help.
 if (program.args.length === 0) program.help();
 
-function setWorkingDirectory (userOutputDir, udid) {
+function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
   let wd = ""
   if (userOutputDir) {
     wd = userOutputDir;
   } else {
     wd = __dirname;
   }
-  wd = wd + "/" + udid;
-  console.log("working directory set to " + wd);
-  return(wd);
+
+  // need to move away from "/" and start using path.sep
+  const wd_udid = wd + "/" + udid;
+  const wd_udid_epoch = wd_udid + '/' + currentEpoch;
+
+  if (!fs.existsSync(wd_udid)){
+    fs.mkdirSync(wd_udid);
+  }
+
+  if (!fs.existsSync(wd_udid_epoch)){
+    fs.mkdirSync(wd_udid_epoch);
+  }
+
+  if (!fs.existsSync(wd_udid_epoch + '/artifacts')){
+    fs.mkdirSync(wd_udid_epoch + '/artifacts');
+  }
+
+  console.log("working directory set to " + wd_udid_epoch);
+  return(wd_udid_epoch);
 }
 
 function collectArtifacts () {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
-  console.log("starting data run in " + __dirname + " at " + new Date().getTime());
-  getUDID(function getDeviceData(error, udid) {
+  getUDID(function (error, udid) {
     if (error) { return console.error(error); }
 
     // no error getting UDID so time to fetch data
-    const wd = setWorkingDirectory(program.output, udid);
+    // first we'll setup the working directory, saving data in unique dir each time based on epoch time
+    const currentEpoch = new Date().getTime(); 
+    const wd = setWorkingDirectory(program.output, udid, currentEpoch);
 
     // start and keep device syslog running until extraction done
     // in future, maybe allow user to set amount of time to run to track overnight
-    var deviceSyslog = getDeviceSyslog(udid, wd);
+    getDeviceSyslog(udid, wd, function(error, deviceSyslog) {
+      if (error) { console.error("Error getting device syslog: " + error); } 
+      console.log("running syslog...");
+    });
+
     var deviceInfo = getDeviceInfo(udid, wd);
     var installedApps = getInstalledApps(udid, wd);
     var provisioningProfiles = listProvisioningProfiles(udid, wd);
     // idevicebackup2 backup --full . (make backup dir)
     // idevicecrashreport -e -k . 
+
+      // going to try nesting all other data extraction functions in getDeviceData
+      // when all of those return, then we can call deviceSyslog.kill();
+      // if (error) { return console.error("error in getDeviceData cb: " + error); }
+      // console.log("all sub data extraction complete so kill syslog");
+      // deviceSyslog.kill();
   });
 };
 
 function getUDID (callback) {
   var retval = ''; 
-var udid = child_process.spawn('idevice_id', ['-l']);
+  const udid = child_process.spawn('idevice_id', ['-l']);
 
   udid.stdout.on('data', (chunk) => {
     // FIXME: if idevice_id fires the data event more than once the this would overwrite
@@ -88,27 +116,30 @@ var udid = child_process.spawn('idevice_id', ['-l']);
     if (retval.length === 41) {
       // found a valid udid so return null error and uuid value
       // first let's make this a string and trim any newlines
-      var udid_str = String.fromCharCode.apply(null, retval);
+      const udid_str = String.fromCharCode.apply(null, retval);
       console.log("Authorized iDevice found, UDID: " + udid_str.trim());
       callback(null, udid_str.trim());
     } else {
       // encountered some sort of error. If 0 len then no device attached, otherwise something else
       if (retval.length === 0) {
-        callback(new Error("No authorized iDevice found. Plug in and authorize a device first."));
+        return callback(new Error("No authorized iDevice found. Plug in and authorize a device first."));
       } else {
-        callback(new Error(retval));
+        return callback(new Error(retval));
       };
     };
   });
 };
 
-function getDeviceSyslog(udid, wd) { 
+function getDeviceSyslog(udid, wd, callback) { 
 
-  var file_name = 'syslog.txt';
-  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  const file_name = 'syslog.txt';
+  const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call idevicesyslog binary
-  var idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: 10000 });
+  // currently I hard coded 10 seconds for idevicesyslog but in future would prefer
+  // the default is to exit after all data collection is done or allow user to
+  // specify a timeout so they could run syslog for, say, a day to profile a device 
+  const idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: 10000 });
 
   // on data events, write chunks to file
   idevicesyslog.stdout.on('data', (chunk) => { 
@@ -126,10 +157,12 @@ function getDeviceSyslog(udid, wd) {
   // https://nodejs.org/api/stream.html#stream_event_close
   idevicesyslog.on('close', function(code) {
     if (code != 0) {
-      console.error('idevicesyslog returned error code ' + code);
+      return callback(new Error('idevicesyslog returned error code ' + code));
     }
   });
-  return(idevicesyslog);
+
+  callback(null, idevicesyslog);
+
 };
 
 function getDeviceInfo(udid, wd) { 

@@ -28,6 +28,8 @@
   },
   "homepage": "https://github.com/ahoog42/ios-triage#readme",
   "dependencies": {
-    "commander": "^2.9.0"
+    "async": "^2.1.4",
+    "commander": "^2.9.0",
+    "xml2js": "^0.4.17"
   }
 }
