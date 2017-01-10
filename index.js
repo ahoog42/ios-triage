@@ -80,9 +80,19 @@ function collectArtifacts () {
       console.log("running syslog...");
     });
 
-    var deviceInfo = getDeviceInfo(udid, wd);
-    var installedApps = getInstalledApps(udid, wd);
-    var provisioningProfiles = listProvisioningProfiles(udid, wd);
+    getDeviceInfo(udid, wd, function(error, deviceInfo) {
+      if (error) { console.error("Error getting device info: " + error); } 
+    });
+
+
+    getInstalledApps(udid, wd, function(error, deviceInfo) {
+      if (error) { console.error("Error getting installed apps on device: " + error); } 
+    });
+
+    listProvisioningProfiles(udid, wd, function(error, provisioningProfiles) {
+      if (error) { console.error("Error listing installed provisioning proflies: " + error); } 
+    });
+ 
     // idevicebackup2 backup --full . (make backup dir)
     // idevicecrashreport -e -k . 
 
@@ -139,7 +149,8 @@ function getDeviceSyslog(udid, wd, callback) {
   // currently I hard coded 10 seconds for idevicesyslog but in future would prefer
   // the default is to exit after all data collection is done or allow user to
   // specify a timeout so they could run syslog for, say, a day to profile a device 
-  const idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: 10000 });
+  const syslogTimeout = 10000;
+  const idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: syslogTimeout });
 
   // on data events, write chunks to file
   idevicesyslog.stdout.on('data', (chunk) => { 
@@ -165,13 +176,13 @@ function getDeviceSyslog(udid, wd, callback) {
 
 };
 
-function getDeviceInfo(udid, wd) { 
+function getDeviceInfo(udid, wd, callback) { 
 
-  var file_name = 'ideviceinfo.txt';
-  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  const file_name = 'ideviceinfo.txt';
+  const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call ideviceinfo binary
-  var ideviceinfo = child_process.spawn('ideviceinfo', []);
+  const ideviceinfo = child_process.spawn('ideviceinfo', []);
 
   // on data events, write chunks to file
   ideviceinfo.stdout.on('data', (chunk) => { 
@@ -189,18 +200,21 @@ function getDeviceInfo(udid, wd) {
   // https://nodejs.org/api/stream.html#stream_event_close
   ideviceinfo.on('close', function(code) {
     if (code != 0) {
-      console.error('ideviceinfo returned error code ' + code);
+      return callback(new Error('Error: ideviceinfo returned error code ' + code));
     }
   });
+
+  callback(null, ideviceinfo);
+
 };
 
-function getInstalledApps(udid, wd) { 
+function getInstalledApps(udid, wd, callback) { 
 
-  var file_name = 'installed-apps.xml';
-  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  const file_name = 'installed-apps.xml';
+  const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call ideviceinstaller binary
-  var ideviceinstaller = child_process.spawn('ideviceinstaller', ['--list-apps', '-o','list_all', '-o', 'xml']);
+  const ideviceinstaller = child_process.spawn('ideviceinstaller', ['--list-apps', '-o','list_all', '-o', 'xml']);
 
   // on data events, write chunks to file
   ideviceinstaller.stdout.on('data', (chunk) => { 
@@ -215,18 +229,21 @@ function getInstalledApps(udid, wd) {
 
   ideviceinstaller.on('close', function(code) {
     if (code != 0) {
-      console.error('ideviceinstaller returned error code ' + code);
+      callback(new Error('ideviceinstaller returned error code ' + code));
     }
   });
+
+  callback(null, ideviceinstaller);
+
 };
 
-function listProvisioningProfiles(udid, wd) { 
+function listProvisioningProfiles(udid, wd, callback) { 
 
-  var file_name = 'provisioning-profiles.txt';
-  var file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  const file_name = 'provisioning-profiles.txt';
+  const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call ideviceprovision binary
-  var ideviceprovision = child_process.spawn('ideviceprovision', ['list']);
+  const ideviceprovision = child_process.spawn('ideviceprovision', ['list']);
 
   // on data events, write chunks to file
   ideviceprovision.stdout.on('data', (chunk) => { 
@@ -241,9 +258,12 @@ function listProvisioningProfiles(udid, wd) {
 
   ideviceprovision.on('close', function(code) {
     if (code != 0) {
-      console.error('ideviceprovision returned error code ' + code);
+      callback(new Error('ideviceprovision returned error code ' + code));
     }
   });
+
+  callback(null, ideviceprovision);
+
 };
 
 function processArtifacts () {
