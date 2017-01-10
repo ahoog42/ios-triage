@@ -73,25 +73,23 @@ function collectArtifacts () {
     const currentEpoch = new Date().getTime(); 
     const wd = setWorkingDirectory(program.output, udid, currentEpoch);
 
-    // start and keep device syslog running until extraction done
-    // in future, maybe allow user to set amount of time to run to track overnight
-    getDeviceSyslog(udid, wd, function(error, deviceSyslog) {
-      if (error) { console.error("Error getting device syslog: " + error); } 
-      console.log("running syslog...");
-    });
-
-    getDeviceInfo(udid, wd, function(error, deviceInfo) {
-      if (error) { console.error("Error getting device info: " + error); } 
-    });
-
-
-    getInstalledApps(udid, wd, function(error, deviceInfo) {
-      if (error) { console.error("Error getting installed apps on device: " + error); } 
-    });
-
-    listProvisioningProfiles(udid, wd, function(error, provisioningProfiles) {
-      if (error) { console.error("Error listing installed provisioning proflies: " + error); } 
-    });
+    async.parallel({
+      syslog: function(callback) {
+        getDeviceSyslog(udid, wd, callback);
+      },
+      deviceInfo: function(callback) {
+        getDeviceInfo(udid, wd, callback);
+      },
+      installedApps: function(callback) {
+        getInstalledApps(udid, wd, callback);
+      },
+      provisioningProfiles: function(callback) {
+        listProvisioningProfiles(udid, wd, callback);
+      }
+    }, function(err, results) {
+      //handle any errors from extraction functions
+      console.log("completed all extraction functions so we'd now kill deviceSyslog");
+    }); 
  
     // idevicebackup2 backup --full . (make backup dir)
     // idevicecrashreport -e -k . 
@@ -152,6 +150,8 @@ function getDeviceSyslog(udid, wd, callback) {
   const syslogTimeout = 10000;
   const idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: syslogTimeout });
 
+  console.log("capturing device syslog...");
+
   // on data events, write chunks to file
   idevicesyslog.stdout.on('data', (chunk) => { 
     file.write(chunk); 
@@ -160,20 +160,22 @@ function getDeviceSyslog(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   idevicesyslog.stdout.on('end', () => { 
     file.end(); 
-    console.log('iOS Device syslog saved to: ' + file.path);
+    console.log("in getDeviceSyslog, end event fired");
   });
 
-  // should this event be on exit or on close?
-  // per documentation, not all Streams emit a close event
-  // https://nodejs.org/api/stream.html#stream_event_close
   idevicesyslog.on('close', function(code) {
     if (code != 0) {
       return callback(new Error('idevicesyslog returned error code ' + code));
+    } else {
+      console.log("in getDeviceSyslog, close event triggered without error");
+      console.log('iOS Device syslog saved to: ' + file.path);
     }
   });
 
+  // for syslog, we call back immediately and return the childProcess so the calling program
+  // has control over deciding when to kill the process. Could be immediately after other
+  // extraction is complete or after a timeout value
   callback(null, idevicesyslog);
-
 };
 
 function getDeviceInfo(udid, wd, callback) { 
@@ -193,6 +195,7 @@ function getDeviceInfo(udid, wd, callback) {
   ideviceinfo.stdout.on('end', () => { 
     file.end(); 
     console.log('iOS Device info saved to: ' + file.path);
+    callback(null, ideviceinfo);
   });
 
   // should this event be on exit or on close?
@@ -203,9 +206,6 @@ function getDeviceInfo(udid, wd, callback) {
       return callback(new Error('Error: ideviceinfo returned error code ' + code));
     }
   });
-
-  callback(null, ideviceinfo);
-
 };
 
 function getInstalledApps(udid, wd, callback) { 
@@ -225,6 +225,7 @@ function getInstalledApps(udid, wd, callback) {
   ideviceinstaller.stdout.on('end', () => { 
     file.end(); 
     console.log('iOS Device installed apps saved to: ' + file.path);
+    callback(null, ideviceinstaller);
   });
 
   ideviceinstaller.on('close', function(code) {
@@ -232,9 +233,6 @@ function getInstalledApps(udid, wd, callback) {
       callback(new Error('ideviceinstaller returned error code ' + code));
     }
   });
-
-  callback(null, ideviceinstaller);
-
 };
 
 function listProvisioningProfiles(udid, wd, callback) { 
@@ -254,6 +252,7 @@ function listProvisioningProfiles(udid, wd, callback) {
   ideviceprovision.stdout.on('end', () => { 
     file.end(); 
     console.log('Installed provisioning profiles saved to: ' + file.path);
+    callback(null, ideviceprovision);
   });
 
   ideviceprovision.on('close', function(code) {
@@ -261,9 +260,6 @@ function listProvisioningProfiles(udid, wd, callback) {
       callback(new Error('ideviceprovision returned error code ' + code));
     }
   });
-
-  callback(null, ideviceprovision);
-
 };
 
 function processArtifacts () {
