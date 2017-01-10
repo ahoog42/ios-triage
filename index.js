@@ -89,6 +89,7 @@ function collectArtifacts () {
     }, function(err, results) {
       //handle any errors from extraction functions
       console.log("completed all extraction functions so we'd now kill deviceSyslog");
+      results.syslog.kill('SIGINT');
     }); 
  
     // idevicebackup2 backup --full . (make backup dir)
@@ -165,7 +166,8 @@ function getDeviceSyslog(udid, wd, callback) {
 
   idevicesyslog.on('close', function(code) {
     if (code != 0) {
-      return callback(new Error('idevicesyslog returned error code ' + code));
+      console.error("idevicesyslog returned error code " + code);
+      // return callback(new Error('idevicesyslog returned error code ' + code));
     } else {
       console.log("in getDeviceSyslog, close event triggered without error");
       console.log('iOS Device syslog saved to: ' + file.path);
