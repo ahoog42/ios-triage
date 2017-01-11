@@ -70,7 +70,7 @@ function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
   return(wd_udid_epoch);
 }
 
-function collectArtifacts (options) {
+function collectArtifacts(options) {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
   getUDID(function (error, udid) {
     if (error) { return console.error(error); }
@@ -80,11 +80,16 @@ function collectArtifacts (options) {
     const currentEpoch = new Date().getTime(); 
     const wd = setWorkingDirectory(program.output, udid, currentEpoch);
 
-    if (options.backup) { console.log("Perform device backup too!"); }
-
     async.parallel({
       syslog: function(callback) {
         getDeviceSyslog(udid, wd, callback);
+      },
+      backup: function(callback) {
+        if (options.backup) {
+          doDeviceBackup(udid, wd, callback);
+        } else {
+          console.log("Skipping device backup");
+        }
       },
       deviceInfo: function(callback) {
         getDeviceInfo(udid, wd, callback);
@@ -300,6 +305,40 @@ function getCrashReports(udid, wd, callback) {
   idevicecrashreport.on('close', function(code) {
     if (code != 0) {
       callback(new Error('idevicecrashreport returned error code ' + code));
+    }
+  });
+};
+
+function doDeviceBackup(udid, wd, callback) { 
+  // idevicebackup2 backup --full .
+  // idevicebackup2 writes many files and directories vs. returning to stdout
+  // creating a directory to store this data and putting stdout into log file
+  const wd_backup = wd + '/backup/';
+  if (!fs.existsSync(wd_backup)){
+    fs.mkdirSync(wd_backup);
+  }
+
+  const file_name = 'backup_log.txt';
+  const file = fs.createWriteStream(wd_backup + file_name);
+
+  // call ideviceprovision binary
+  const idevicebackup2 = child_process.spawn('idevicebackup2', ['backup', '--full', wd_backup]);
+
+  // on data events, write chunks to file
+  idevicebackup2.stdout.on('data', (chunk) => { 
+    file.write(chunk); 
+  });
+
+  // after Stream ends, close the file, inform user of saved file
+  idevicebackup2.stdout.on('end', () => { 
+    file.end(); 
+    console.log('Device backup and log saved to: ' + file.path);
+    callback(null, idevicebackup2);
+  });
+
+  idevicebackup2.on('close', function(code) {
+    if (code != 0) {
+      callback(new Error('idevicebackup2 returned error code ' + code));
     }
   });
 };
