@@ -18,17 +18,24 @@ program
 program
   .command('collect')
   .description('Collect IR artifacts from iPhone or iPad')
-  .action(collectArtifacts);
+  .option('-b, --backup', 'Backup iOS device')
+  .action(function(options) {
+      collectArtifacts(options);
+  });
 
 program
   .command('process')
   .description('Process collected artifacts')
-  .action(processArtifacts);
+  .action(function() {
+    processArtifacts();
+  });
 
 program
   .command('report')
   .description('Generate iOS IR report')
-  .action(generateReport);
+  .action(function() {
+    generateReport();
+  });
 
 program.parse(process.argv);
 
@@ -63,7 +70,7 @@ function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
   return(wd_udid_epoch);
 }
 
-function collectArtifacts () {
+function collectArtifacts (options) {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
   getUDID(function (error, udid) {
     if (error) { return console.error(error); }
@@ -72,6 +79,8 @@ function collectArtifacts () {
     // first we'll setup the working directory, saving data in unique dir each time based on epoch time
     const currentEpoch = new Date().getTime(); 
     const wd = setWorkingDirectory(program.output, udid, currentEpoch);
+
+    if (options.backup) { console.log("Perform device backup too!"); }
 
     async.parallel({
       syslog: function(callback) {
@@ -96,7 +105,6 @@ function collectArtifacts () {
     }); 
  
     // idevicebackup2 backup --full . (make backup dir)
-    // idevicecrashreport -e -k . 
 
   });
 };
