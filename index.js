@@ -85,6 +85,9 @@ function collectArtifacts () {
       },
       provisioningProfiles: function(callback) {
         listProvisioningProfiles(udid, wd, callback);
+      },
+      crashReports: function(callback) {
+        getCrashReports(udid, wd, callback);
       }
     }, function(err, results) {
       //handle any errors from extraction functions
@@ -95,11 +98,6 @@ function collectArtifacts () {
     // idevicebackup2 backup --full . (make backup dir)
     // idevicecrashreport -e -k . 
 
-      // going to try nesting all other data extraction functions in getDeviceData
-      // when all of those return, then we can call deviceSyslog.kill();
-      // if (error) { return console.error("error in getDeviceData cb: " + error); }
-      // console.log("all sub data extraction complete so kill syslog");
-      // deviceSyslog.kill();
   });
 };
 
@@ -260,6 +258,40 @@ function listProvisioningProfiles(udid, wd, callback) {
   ideviceprovision.on('close', function(code) {
     if (code != 0) {
       callback(new Error('ideviceprovision returned error code ' + code));
+    }
+  });
+};
+
+function getCrashReports(udid, wd, callback) { 
+
+  // idevicecrashreport writes multiple files vs. returning to stdout
+  // creating a directory to store this data and putting stdout into log file
+  const wd_crashreports = wd + '/crash_reports/';
+  if (!fs.existsSync(wd_crashreports)){
+    fs.mkdirSync(wd_crashreports);
+  }
+
+  const file_name = 'crashlogs.txt';
+  const file = fs.createWriteStream(wd_crashreports + file_name);
+
+  // call ideviceprovision binary
+  const idevicecrashreport = child_process.spawn('idevicecrashreport', ['--extract', '--keep', wd_crashreports]);
+
+  // on data events, write chunks to file
+  idevicecrashreport.stdout.on('data', (chunk) => { 
+    file.write(chunk); 
+  });
+
+  // after Stream ends, close the file, inform user of saved file
+  idevicecrashreport.stdout.on('end', () => { 
+    file.end(); 
+    console.log('Crash reports and log saved to: ' + file.path);
+    callback(null, idevicecrashreport);
+  });
+
+  idevicecrashreport.on('close', function(code) {
+    if (code != 0) {
+      callback(new Error('idevicecrashreport returned error code ' + code));
     }
   });
 };
