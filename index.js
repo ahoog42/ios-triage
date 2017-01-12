@@ -19,6 +19,7 @@ program
   .command('collect')
   .description('Collect IR artifacts from iPhone or iPad')
   .option('-b, --backup', 'Backup iOS device')
+  .option('--syslog-timeout <seconds>', 'Optional timeout (in seconds) for how long to collect syslong, e.g. 86400 to collect for a day')
   .action(function(options) {
       collectArtifacts(options);
   });
@@ -80,15 +81,15 @@ function collectArtifacts(options) {
     const currentEpoch = new Date().getTime(); 
     const wd = setWorkingDirectory(program.output, udid, currentEpoch);
 
+    const idevicesyslog = getDeviceSyslog(udid, wd, options.syslogTimeout); 
+
     async.parallel({
-      syslog: function(callback) {
-        getDeviceSyslog(udid, wd, callback);
-      },
       backup: function(callback) {
         if (options.backup) {
           doDeviceBackup(udid, wd, callback);
         } else {
           console.log("Skipping device backup");
+          callback();
         }
       },
       deviceInfo: function(callback) {
@@ -105,12 +106,14 @@ function collectArtifacts(options) {
       }
     }, function(err, results) {
       //handle any errors from extraction functions
-      console.log("completed all extraction functions so we'd now kill deviceSyslog");
-      results.syslog.kill('SIGINT');
+      if(options.syslogTimeout === undefined) {
+        console.log("completed all extraction functions so we'll now kill deviceSyslog");
+        idevicesyslog.kill('SIGINT');
+      } else {
+        console.log("waiting " + options.syslogTimeout + " seconds for syslog to execute");
+      };
     }); 
  
-    // idevicebackup2 backup --full . (make backup dir)
-
   });
 };
 
@@ -150,17 +153,24 @@ function getUDID (callback) {
   });
 };
 
-function getDeviceSyslog(udid, wd, callback) { 
+function getDeviceSyslog(udid, wd, syslogTimeout) { 
 
   const file_name = 'syslog.txt';
   const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
+  // set options for execFile to none. then check to see if user specified a timeout
+  let execOptions = "";
+  if (syslogTimeout) {
+    // syslog timeout was specified so run with that user setting 
+    execOptions = "timeout: " + syslogTimeout;
+  };  
+
   // call idevicesyslog binary
-  // currently I hard coded 10 seconds for idevicesyslog but in future would prefer
-  // the default is to exit after all data collection is done or allow user to
-  // specify a timeout so they could run syslog for, say, a day to profile a device 
-  const syslogTimeout = 10000;
-  const idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: syslogTimeout });
+  console.log("calling idevicesyslog with execOptions: " + execOptions);
+  // const idevicesyslog = child_process.execFile('idevicesyslog', [], { execOptions })
+  // const syslogTimeout_hardcoded = "timeout: 8000";
+  const syslogTimeout_hardcoded = 15000;
+  const idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: syslogTimeout_hardcoded } );
 
   console.log("capturing device syslog...");
 
@@ -181,14 +191,16 @@ function getDeviceSyslog(udid, wd, callback) {
       // return callback(new Error('idevicesyslog returned error code ' + code));
     } else {
       console.log("in getDeviceSyslog, close event triggered without error");
-      console.log('iOS Device syslog saved to: ' + file.path);
+      console.log('iOS Device syslog saved');
+      // callback(null, idevicesyslog);
     }
   });
 
   // for syslog, we call back immediately and return the childProcess so the calling program
   // has control over deciding when to kill the process. Could be immediately after other
   // extraction is complete or after a timeout value
-  callback(null, idevicesyslog);
+  //callback(null, idevicesyslog);
+  return(idevicesyslog);
 };
 
 function getDeviceInfo(udid, wd, callback) { 
@@ -207,7 +219,7 @@ function getDeviceInfo(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   ideviceinfo.stdout.on('end', () => { 
     file.end(); 
-    console.log('iOS Device info saved to: ' + file.path);
+    console.log('iOS Device info saved');
     callback(null, ideviceinfo);
   });
 
@@ -237,7 +249,7 @@ function getInstalledApps(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   ideviceinstaller.stdout.on('end', () => { 
     file.end(); 
-    console.log('iOS Device installed apps saved to: ' + file.path);
+    console.log('iOS Device installed apps saved');
     callback(null, ideviceinstaller);
   });
 
@@ -264,7 +276,7 @@ function listProvisioningProfiles(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   ideviceprovision.stdout.on('end', () => { 
     file.end(); 
-    console.log('Installed provisioning profiles saved to: ' + file.path);
+    console.log('Installed provisioning profiles saved');
     callback(null, ideviceprovision);
   });
 
@@ -279,7 +291,7 @@ function getCrashReports(udid, wd, callback) {
 
   // idevicecrashreport writes multiple files vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
-  const wd_crashreports = wd + '/crash_reports/';
+  const wd_crashreports = wd + '/artifacts/crash_reports/';
   if (!fs.existsSync(wd_crashreports)){
     fs.mkdirSync(wd_crashreports);
   }
@@ -298,7 +310,7 @@ function getCrashReports(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   idevicecrashreport.stdout.on('end', () => { 
     file.end(); 
-    console.log('Crash reports and log saved to: ' + file.path);
+    console.log('Crash reports and log saved');
     callback(null, idevicecrashreport);
   });
 
@@ -332,7 +344,7 @@ function doDeviceBackup(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   idevicebackup2.stdout.on('end', () => { 
     file.end(); 
-    console.log('Device backup and log saved to: ' + file.path);
+    console.log('Device backup and log saved');
     callback(null, idevicebackup2);
   });
 
