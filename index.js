@@ -19,7 +19,7 @@ program
   .command('collect')
   .description('Collect IR artifacts from iPhone or iPad')
   .option('-b, --backup', 'Backup iOS device')
-  .option('--syslog-timeout <seconds>', 'Optional timeout (in seconds) for how long to collect syslong, e.g. 86400 to collect for a day')
+  .option('--syslog-timeout <ms>', 'Optional timeout for how long to collect syslong, e.g. 86400 to collect for a day')
   .action(function(options) {
       collectArtifacts(options);
   });
@@ -89,6 +89,7 @@ function collectArtifacts(options) {
           doDeviceBackup(udid, wd, callback);
         } else {
           console.log("Skipping device backup");
+          // this callback() iw critical so async.parallel can returm
           callback();
         }
       },
@@ -110,7 +111,7 @@ function collectArtifacts(options) {
         console.log("completed all extraction functions so we'll now kill deviceSyslog");
         idevicesyslog.kill('SIGINT');
       } else {
-        console.log("waiting " + options.syslogTimeout + " seconds for syslog to execute");
+        console.log("waiting " + options.syslogTimeout + "ms for syslog to execute");
       };
     }); 
  
@@ -158,19 +159,21 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
   const file_name = 'syslog.txt';
   const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
-  // set options for execFile to none. then check to see if user specified a timeout
-  let execOptions = "";
+  let userTimeout = 0;
+  // check to see if user specified a timeout
   if (syslogTimeout) {
     // syslog timeout was specified so run with that user setting 
-    execOptions = "timeout: " + syslogTimeout;
-  };  
+    // FIX: add check to make sure syslogTimeout is an int or catch the conversion error
+    userTimeout = Number(syslogTimeout);
+  };
+
+  const opts = {
+    timeout: userTimeout,
+    maxBuffer: 200*1024
+  };
 
   // call idevicesyslog binary
-  console.log("calling idevicesyslog with execOptions: " + execOptions);
-  // const idevicesyslog = child_process.execFile('idevicesyslog', [], { execOptions })
-  // const syslogTimeout_hardcoded = "timeout: 8000";
-  const syslogTimeout_hardcoded = 15000;
-  const idevicesyslog = child_process.execFile('idevicesyslog', [], { timeout: syslogTimeout_hardcoded } );
+  const idevicesyslog = child_process.execFile('idevicesyslog', [], opts );
 
   console.log("capturing device syslog...");
 
