@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 'use strict';
 
-var program = require('commander');
-var fs = require('fs');
-var os = require('os');
-var xml2js = require('xml2js');
-var async = require('async');
-
+const program = require('commander');
+const fs = require('fs');
+const os = require('os');
+const xml2js = require('xml2js');
+const async = require('async');
 const child_process = require('child_process');
+const logger = require('./logger.js')
 
 program
   .version('0.1.0')
@@ -67,14 +67,17 @@ function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
     fs.mkdirSync(wd_udid_epoch + '/artifacts');
   }
 
-  console.log("working directory set to " + wd_udid_epoch);
+  logger.info("output directory set to %s", wd_udid_epoch);
   return(wd_udid_epoch);
 }
 
 function collectArtifacts(options) {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
   getUDID(function (error, udid) {
-    if (error) { return console.error(error); }
+    if (error) { 
+      logger.error(error); 
+      process.exit();     
+    }
 
     // no error getting UDID so time to fetch data
     // first we'll setup the working directory, saving data in unique dir each time based on epoch time
@@ -88,7 +91,7 @@ function collectArtifacts(options) {
         if (options.backup) {
           doDeviceBackup(udid, wd, callback);
         } else {
-          console.log("Skipping device backup");
+          logger.info("Skipping device backup");
           // this callback() iw critical so async.parallel can returm
           callback();
         }
@@ -108,10 +111,10 @@ function collectArtifacts(options) {
     }, function(err, results) {
       //handle any errors from extraction functions
       if(options.syslogTimeout === undefined) {
-        console.log("completed all extraction functions so we'll now kill deviceSyslog");
+        logger.info("completed all extraction functions so we'll now kill deviceSyslog");
         idevicesyslog.kill('SIGINT');
       } else {
-        console.log("waiting " + options.syslogTimeout + "ms for syslog to execute");
+        logger.info("waiting %d ms for syslog to execute", options.syslogTimeout);
       };
     }); 
  
@@ -141,7 +144,7 @@ function getUDID (callback) {
       // found a valid udid so return null error and uuid value
       // first let's make this a string and trim any newlines
       const udid_str = String.fromCharCode.apply(null, retval);
-      console.log("Authorized iDevice found, UDID: " + udid_str.trim());
+      logger.info("Authorized iDevice found, UDID: %s", udid_str.trim());
       callback(null, udid_str.trim());
     } else {
       // encountered some sort of error. If 0 len then no device attached, otherwise something else
@@ -179,7 +182,7 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
   // call idevicesyslog binary
   const idevicesyslog = child_process.execFile('idevicesyslog', [], opts );
 
-  console.log("capturing device syslog...");
+  logger.info("capturing device syslog...");
 
   // on data events, write chunks to file
   idevicesyslog.stdout.on('data', (chunk) => { 
@@ -189,16 +192,16 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
   // after Stream ends, close the file, inform user of saved file
   idevicesyslog.stdout.on('end', () => { 
     file.end(); 
-    console.log("in getDeviceSyslog, end event fired");
+    logger.debug("in getDeviceSyslog, end event fired");
   });
 
   idevicesyslog.on('close', function(code) {
     if (code != 0) {
-      console.error("idevicesyslog returned error code " + code);
+      logger.error("idevicesyslog returned error code " + code);
       // return callback(new Error('idevicesyslog returned error code ' + code));
     } else {
-      console.log("in getDeviceSyslog, close event triggered without error");
-      console.log('iOS Device syslog saved');
+      logger.debug("in getDeviceSyslog, close event triggered without error");
+      logger.info('iOS Device syslog saved');
       // callback(null, idevicesyslog);
     }
   });
@@ -226,7 +229,7 @@ function getDeviceInfo(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   ideviceinfo.stdout.on('end', () => { 
     file.end(); 
-    console.log('iOS Device info saved');
+    logger.info('iOS Device info saved');
     callback(null, ideviceinfo);
   });
 
@@ -256,7 +259,7 @@ function getInstalledApps(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   ideviceinstaller.stdout.on('end', () => { 
     file.end(); 
-    console.log('iOS Device installed apps saved');
+    logger.info('iOS Device installed apps saved');
     callback(null, ideviceinstaller);
   });
 
@@ -283,7 +286,7 @@ function listProvisioningProfiles(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   ideviceprovision.stdout.on('end', () => { 
     file.end(); 
-    console.log('Installed provisioning profiles saved');
+    logger.info('Installed provisioning profiles saved');
     callback(null, ideviceprovision);
   });
 
@@ -317,7 +320,7 @@ function getCrashReports(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   idevicecrashreport.stdout.on('end', () => { 
     file.end(); 
-    console.log('Crash reports and log saved');
+    logger.info('Crash reports and log saved');
     callback(null, idevicecrashreport);
   });
 
@@ -351,7 +354,7 @@ function doDeviceBackup(udid, wd, callback) {
   // after Stream ends, close the file, inform user of saved file
   idevicebackup2.stdout.on('end', () => { 
     file.end(); 
-    console.log('Device backup and log saved');
+    logger.info('Device backup and log saved');
     callback(null, idevicebackup2);
   });
 
@@ -363,12 +366,12 @@ function doDeviceBackup(udid, wd, callback) {
 };
 
 function processArtifacts () {
-  console.log("process artifacts");
+  logger.info("process artifacts");
 }
 
 function generateReport () {
-  //console.log("generate report");
-  var parser = new xml2js.Parser();
+
+  const parser = new xml2js.Parser();
   fs.readFile(wd + '/artifacts/installed-apps.xml', function(err, data) {
     parser.parseString(data, function (err, result) {
       console.dir(JSON.stringify(result));

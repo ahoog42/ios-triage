@@ -30,6 +30,7 @@
   "dependencies": {
     "async": "^2.1.4",
     "commander": "^2.9.0",
+    "winston": "^2.3.0",
     "xml2js": "^0.4.17"
   }
 }
