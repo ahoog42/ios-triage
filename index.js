@@ -167,9 +167,13 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
     userTimeout = Number(syslogTimeout);
   };
 
+  // execFile maxBuffer is set to 200k but I've overode it here to 5MB. I'll probably
+  // need to change this call to exec or fork, need to research a little more
+  // originally chose execFile so I could control the timeout...but we could also do
+  // that in the calling function if we wanted.
   const opts = {
     timeout: userTimeout,
-    maxBuffer: 200*1024
+    maxBuffer: 5000*1024
   };
 
   // call idevicesyslog binary
@@ -328,7 +332,7 @@ function doDeviceBackup(udid, wd, callback) {
   // idevicebackup2 backup --full .
   // idevicebackup2 writes many files and directories vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
-  const wd_backup = wd + '/backup/';
+  const wd_backup = wd + '/artifacts/backup/';
   if (!fs.existsSync(wd_backup)){
     fs.mkdirSync(wd_backup);
   }
