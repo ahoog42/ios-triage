@@ -371,17 +371,46 @@ function processArtifacts () {
 
 function generateReport () {
   // hack for experimenting
-  const installedApps = "/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/1484346254360/artifacts/installed-apps.xml";
- 
+  const installedAppsXML = "/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/1484346254360/artifacts/installed-apps.xml";
+
   // read and parse plist file
-  const obj = plist.parse(fs.readFileSync(installedApps, 'utf8'));
+  const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
   // console.log(JSON.stringify(obj));
 
+  // setup object to represent installedApps
+  const installedApps = {};
+  installedApps.apps = [];
+
   for (let prop in obj) {
+    // every prop in array is properties for an app
     const app = obj[prop];
+    let appInfo = {}; //object to store individual app properties in
     for(let attrib in app) {
-      console.log("app." + attrib + " = " + app[attrib]);
+      switch(attrib) {
+        case "CFBundleName":
+          appInfo.name = app[attrib];
+          break;
+        case "CFBundleVersion":
+          appInfo.version = app[attrib];
+          break;
+        case "CFBundleIdentifier":
+          appInfo.bundleIdentifier = app[attrib];
+          break;
+        case "SignerIdentity":
+          appInfo.signerIdentity = app[attrib];
+          break;
+        case "ApplicationType":
+          appInfo.applicationType = app[attrib];
+          break;
+        default:
+          // otherwise ignore property for now
+          break;
+      };
+    // now push current appInfo into installedApps.apps array
+      installedApps.apps.push(appInfo);
     };
+    logger.debug("moving to next app");
   };
+  console.log(JSON.stringify(installedApps));
 };
 
