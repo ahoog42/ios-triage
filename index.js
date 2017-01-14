@@ -9,6 +9,7 @@ const child_process = require('child_process');
 const logger = require('./logger.js');
 const plist = require('plist');
 
+
 program
   .version('0.1.0')
   .description('Incident response tool for iPhone or iPad')
@@ -374,7 +375,13 @@ function generateReport () {
  
   // read and parse plist file
   const obj = plist.parse(fs.readFileSync(installedApps, 'utf8'));
-  console.log(JSON.stringify(obj));
+  // console.log(JSON.stringify(obj));
 
+  for (let prop in obj) {
+    const app = obj[prop];
+    for(let attrib in app) {
+      console.log("app." + attrib + " = " + app[attrib]);
+    };
+  };
 };
 
