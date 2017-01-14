@@ -8,7 +8,7 @@ const async = require('async');
 const child_process = require('child_process');
 const logger = require('./logger.js');
 const plist = require('plist');
-
+const path = require('path');
 
 program
   .version('0.1.0')
@@ -17,26 +17,28 @@ program
   .option('-v, --verbose', 'Display verbose output')
 
 program
-  .command('collect')
-  .description('Collect IR artifacts from iPhone or iPad')
+  .command('extract')
+  .description('Extract IR artifacts from iPhone or iPad')
   .option('-b, --backup', 'Backup iOS device')
   .option('--syslog-timeout <ms>', 'Optional timeout for how long to collect syslong, e.g. 86400 to collect for a day')
   .action(function(options) {
-      collectArtifacts(options);
+      extractArtifacts(options);
   });
 
 program
   .command('process')
-  .description('Process collected artifacts')
-  .action(function() {
-    processArtifacts();
+  .arguments('<dir>')
+  .description('Process extracted artifacts in <dir>')
+  .action(function(dir) {
+    processArtifacts(dir);
   });
 
 program
   .command('report')
-  .description('Generate iOS IR report')
-  .action(function() {
-    generateReport();
+  .arguments('<dir>')
+  .description('Generate iOS IR reports from <dir>')
+  .action(function(dir) {
+    generateReport(dir);
   });
 
 program.parse(process.argv);
@@ -72,7 +74,7 @@ function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
   return(wd_udid_epoch);
 }
 
-function collectArtifacts(options) {
+function extractArtifacts(options) {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
   getUDID(function (error, udid) {
     if (error) { 
@@ -365,13 +367,31 @@ function doDeviceBackup(udid, wd, callback) {
   });
 };
 
-function processArtifacts () {
-  logger.info("process artifacts");
-}
+function processArtifacts(dir) {
+  //logger.info("process artifacts in %s", dir);
 
-function generateReport () {
+  const artifactPath = dir + path.sep + 'artifacts';
+  const installedAppsXML = artifactPath + path.sep + 'installed-apps.xml';
+
+  fs.stat(installedAppsXML, function(err, stat) {
+    if(!err) {
+      processInstalledAppsXML(installedAppsXML, function(err, installedApps) {
+        if(!err) {
+         console.log(JSON.stringify(installedApps));
+        } else {
+          logger.error("error processing installed apps: %s", err);
+        };
+      });
+    } else {
+        logger.warn("Could not read installed apps artifact. %s", err);
+    };
+  }); 
+
+};
+
+function processInstalledAppsXML(installedAppsXML, callback) {
   // hack for experimenting
-  const installedAppsXML = "/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/1484346254360/artifacts/installed-apps.xml";
+  // const installedAppsXML = "/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/1484346254360/artifacts/installed-apps.xml";
 
   // read and parse plist file
   const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
@@ -409,8 +429,13 @@ function generateReport () {
     // now push current appInfo into installedApps.apps array
       installedApps.apps.push(appInfo);
     };
-    logger.debug("moving to next app");
+    // logger.debug("moving to next app");
   };
-  console.log(JSON.stringify(installedApps));
+  // console.log(JSON.stringify(installedApps));
+  callback(null, installedApps);
+};
+
+function generateReport(dir) {
+  logger.info("generate report for processed data in %s", dir);
 };
 
