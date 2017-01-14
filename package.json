@@ -30,8 +30,8 @@
   "dependencies": {
     "async": "^2.1.4",
     "commander": "^2.9.0",
+    "plist": "^2.0.1",
     "winston": "^2.3.0",
-    "xmldom": "^0.1.27",
-    "xpath": "0.0.23"
+    "xmldom": "^0.1.27"
   }
 }

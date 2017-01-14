@@ -6,7 +6,8 @@ const fs = require('fs');
 const os = require('os');
 const async = require('async');
 const child_process = require('child_process');
-const logger = require('./logger.js')
+const logger = require('./logger.js');
+const plist = require('plist');
 
 program
   .version('0.1.0')
@@ -368,17 +369,12 @@ function processArtifacts () {
 }
 
 function generateReport () {
-
-  const xpath = require('xpath');
-  const dom = require('xmldom').DOMParser;
+  // hack for experimenting
   const installedApps = "/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/1484346254360/artifacts/installed-apps.xml";
-  const xml = fs.readFileSync(installedApps).toString();
-
-  const doc = new dom().parseFromString(xml)
-  const nodes = xpath.select("//integer", doc)
-
-  console.log(nodes[0].localName + ": " + nodes[0].firstChild.data);
-  console.log("Node: " + nodes[0].toString())
+ 
+  // read and parse plist file
+  const obj = plist.parse(fs.readFileSync(installedApps, 'utf8'));
+  console.log(JSON.stringify(obj));
 
 };
 
