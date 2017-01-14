@@ -4,7 +4,6 @@
 const program = require('commander');
 const fs = require('fs');
 const os = require('os');
-const xml2js = require('xml2js');
 const async = require('async');
 const child_process = require('child_process');
 const logger = require('./logger.js')
@@ -75,8 +74,7 @@ function collectArtifacts(options) {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
   getUDID(function (error, udid) {
     if (error) { 
-      logger.error(error); 
-      process.exit();     
+      return logger.error(error); 
     }
 
     // no error getting UDID so time to fetch data
@@ -371,12 +369,16 @@ function processArtifacts () {
 
 function generateReport () {
 
-  const parser = new xml2js.Parser();
-  fs.readFile(wd + '/artifacts/installed-apps.xml', function(err, data) {
-    parser.parseString(data, function (err, result) {
-      console.dir(JSON.stringify(result));
-    });
-  });
+  const xpath = require('xpath');
+  const dom = require('xmldom').DOMParser;
+  const installedApps = "/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/1484346254360/artifacts/installed-apps.xml";
+  const xml = fs.readFileSync(installedApps).toString();
 
-}
+  const doc = new dom().parseFromString(xml)
+  const nodes = xpath.select("//integer", doc)
+
+  console.log(nodes[0].localName + ": " + nodes[0].firstChild.data);
+  console.log("Node: " + nodes[0].toString())
+
+};
 
