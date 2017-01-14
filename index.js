@@ -370,23 +370,36 @@ function doDeviceBackup(udid, wd, callback) {
 function processArtifacts(dir) {
   //logger.info("process artifacts in %s", dir);
 
+  const processedPath = dir + path.sep + 'processed';
   const artifactPath = dir + path.sep + 'artifacts';
   const installedAppsXML = artifactPath + path.sep + 'installed-apps.xml';
 
-  fs.stat(installedAppsXML, function(err, stat) {
-    if(!err) {
-      processInstalledAppsXML(installedAppsXML, function(err, installedApps) {
-        if(!err) {
-         console.log(JSON.stringify(installedApps));
-        } else {
-          logger.error("error processing installed apps: %s", err);
-        };
-      });
+  if (!fs.existsSync(artifactPath)){
+    logger.error("No artifact direcorty found at %s", artifactPath);
+  } else {  
+    // see if processed dir exists, if so alert but continue. otherwise, create
+    if (!fs.existsSync(processedPath)) {
+     fs.mkdirSync(processedPath);
     } else {
-        logger.warn("Could not read installed apps artifact. %s", err);
-    };
-  }); 
-
+      console.warn('Processed path already exists, overwriting previous processed data');
+    }
+ 
+    fs.stat(installedAppsXML, function(err, stat) {
+      if(!err) {
+        processInstalledAppsXML(installedAppsXML, function(err, installedApps) {
+          if(!err) {
+            logger.info("installed apps xml processed, writing to disk");
+            const json = JSON.stringify(installedApps);
+            fs.writeFile(processedPath + path.sep + 'installedApps.json', json, 'utf8');
+          } else {
+            logger.error("error processing installed apps: %s", err);
+          };
+        });
+      } else {
+          logger.warn("Could not read installed apps artifact. %s", err);
+      };
+    }); 
+  };
 };
 
 function processInstalledAppsXML(installedAppsXML, callback) {
