@@ -386,11 +386,14 @@ function processArtifacts(dir) {
  
     fs.stat(installedAppsXML, function(err, stat) {
       if(!err) {
-        processInstalledAppsXML(installedAppsXML, function(err, installedApps) {
+        processInstalledAppsXML(installedAppsXML, function(err, installedAppsParsed, installedAppsDetailed) {
           if(!err) {
             logger.info("installed apps xml processed, writing to disk");
-            const json = JSON.stringify(installedApps);
-            fs.writeFile(processedPath + path.sep + 'installedApps.json', json, 'utf8');
+            const parsedAppsJSON = JSON.stringify(installedAppsParsed);
+            const detailedAppsJSON = JSON.stringify(installedAppsDetailed);
+            // FIXME should catch errors, maye use callbacks?
+            fs.writeFile(processedPath + path.sep + 'installedApps.json', parsedAppsJSON, 'utf8');
+            fs.writeFile(processedPath + path.sep + 'installedApps-Detailed.json', detailedAppsJSON, 'utf8');
           } else {
             logger.error("error processing installed apps: %s", err);
           };
@@ -403,16 +406,16 @@ function processArtifacts(dir) {
 };
 
 function processInstalledAppsXML(installedAppsXML, callback) {
-  // hack for experimenting
-  // const installedAppsXML = "/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/1484346254360/artifacts/installed-apps.xml";
-
   // read and parse plist file
+  // FIXME: should error check the call to plist.parse
   const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
-  // console.log(JSON.stringify(obj));
 
-  // setup object to represent installedApps
-  const installedApps = {};
-  installedApps.apps = [];
+  // for further analysis
+  const installedAppsDetailed = obj;
+
+  // setup object to stored parsed app properties into
+  const installedAppsParsed = {};
+  installedAppsParsed.apps = [];
 
   for (let prop in obj) {
     // every prop in array is properties for an app
@@ -439,13 +442,12 @@ function processInstalledAppsXML(installedAppsXML, callback) {
           // otherwise ignore property for now
           break;
       };
-    // now push current appInfo into installedApps.apps array
-      installedApps.apps.push(appInfo);
     };
+    // now push current appInfo into installedAppsParsed.apps array
+    installedAppsParsed.apps.push(appInfo);
     // logger.debug("moving to next app");
   };
-  // console.log(JSON.stringify(installedApps));
-  callback(null, installedApps);
+  callback(null, installedAppsParsed, installedAppsDetailed);
 };
 
 function generateReport(dir) {
