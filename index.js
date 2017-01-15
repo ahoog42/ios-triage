@@ -30,7 +30,9 @@ program
   .arguments('<dir>')
   .description('Process extracted artifacts in <dir>')
   .action(function(dir) {
-    processArtifacts(dir);
+    processArtifacts(dir, function(err, runStatus) {
+      if(err) { logger.error(err); };
+    });
   });
 
 program
@@ -38,7 +40,9 @@ program
   .arguments('<dir>')
   .description('Generate iOS IR reports from <dir>')
   .action(function(dir) {
-    generateReport(dir);
+    generateReport(dir, function(err, runStatus) {
+      if(err) { logger.error(err); };
+    });
   });
 
 program.parse(process.argv);
@@ -47,12 +51,12 @@ program.parse(process.argv);
 if (program.args.length === 0) program.help();
 
 function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
-  let wd = ""
+  let wd = "";
   if (userOutputDir) {
     wd = userOutputDir;
   } else {
     wd = __dirname;
-  }
+  };
 
   // need to move away from "/" and start using path.sep
   const wd_udid = wd + "/" + udid;
@@ -60,15 +64,15 @@ function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
 
   if (!fs.existsSync(wd_udid)){
     fs.mkdirSync(wd_udid);
-  }
+  };
 
   if (!fs.existsSync(wd_udid_epoch)){
     fs.mkdirSync(wd_udid_epoch);
-  }
+  };
 
   if (!fs.existsSync(wd_udid_epoch + '/artifacts')){
     fs.mkdirSync(wd_udid_epoch + '/artifacts');
-  }
+  };
 
   logger.info("output directory set to %s", wd_udid_epoch);
   return(wd_udid_epoch);
@@ -79,7 +83,7 @@ function extractArtifacts(options) {
   getUDID(function (error, udid) {
     if (error) { 
       return logger.error(error); 
-    }
+    };
 
     // no error getting UDID so time to fetch data
     // first we'll setup the working directory, saving data in unique dir each time based on epoch time
@@ -367,15 +371,16 @@ function doDeviceBackup(udid, wd, callback) {
   });
 };
 
-function processArtifacts(dir) {
+function processArtifacts(dir, callback) {
   //logger.info("process artifacts in %s", dir);
 
   const processedPath = dir + path.sep + 'processed';
   const artifactPath = dir + path.sep + 'artifacts';
   const installedAppsXML = artifactPath + path.sep + 'installed-apps.xml';
+  const deviceInfoXML = artifactPath + path.sep + 'ideviceinfo.xml';
 
   if (!fs.existsSync(artifactPath)){
-    logger.error("No artifact direcorty found at %s", artifactPath);
+    return callback(new Error("No artifact directory found at " + artifactPath));
   } else {  
     // see if processed dir exists, if so alert but continue. otherwise, create
     if (!fs.existsSync(processedPath)) {
@@ -402,12 +407,31 @@ function processArtifacts(dir) {
           logger.warn("Could not read installed apps artifact. %s", err);
       };
     }); 
+
+    fs.stat(deviceInfoXML, function(err, stat) {
+      if(!err) {
+        processDeviceInfo(deviceInfoXML, function(err, deviceInfoDetailed) {
+          if(!err) {
+            logger.info("device info xml processed, writing to disk");
+            const detailedDeviceInfoJSON = JSON.stringify(deviceInfoDetailed);
+            // FIXME should catch errors, maye use callbacks?
+            fs.writeFile(processedPath + path.sep + 'deviceInfo-Detailed.json', detailedDeviceInfoJSON, 'utf8');
+          } else {
+            logger.error("error processing device info: %s", err);
+          };
+        });
+      } else {
+          logger.warn("Could not read device info artifact. %s", err);
+      };
+    }); 
+
+    callback(null, "success");
   };
 };
 
 function processInstalledAppsXML(installedAppsXML, callback) {
   // read and parse plist file
-  // FIXME: should error check the call to plist.parse
+  // TODO: error check the call to plist.parse
   const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
 
   // for further analysis
@@ -449,6 +473,54 @@ function processInstalledAppsXML(installedAppsXML, callback) {
   };
   callback(null, installedAppsParsed, installedAppsDetailed);
 };
+
+function processDeviceInfo(deviceInfoXML, callback) {
+  // read and parse plist file
+  // TODO: error check the call to plist.parse
+  const obj = plist.parse(fs.readFileSync(deviceInfoXML, 'utf8'));
+
+  // for further analysis
+  const deviceInfoDetailed = obj;
+
+  // setup object to stored parsed app properties into
+  /*
+  const installedAppsParsed = {};
+  installedAppsParsed.apps = [];
+
+  for (let prop in obj) {
+    // every prop in array is properties for an app
+    const app = obj[prop];
+    let appInfo = {}; //object to store individual app properties in
+    for(let attrib in app) {
+      switch(attrib) {
+        case "CFBundleName":
+          appInfo.name = app[attrib];
+          break;
+        case "CFBundleVersion":
+          appInfo.version = app[attrib];
+          break;
+        case "CFBundleIdentifier":
+          appInfo.bundleIdentifier = app[attrib];
+          break;
+        case "SignerIdentity":
+          appInfo.signerIdentity = app[attrib];
+          break;
+        case "ApplicationType":
+          appInfo.applicationType = app[attrib];
+          break;
+        default:
+          // otherwise ignore property for now
+          break;
+      };
+    };
+    // now push current appInfo into installedAppsParsed.apps array
+    installedAppsParsed.apps.push(appInfo);
+    // logger.debug("moving to next app");
+  };
+*/
+  callback(null, deviceInfoDetailed);
+};
+
 
 function generateReport(dir) {
   logger.info("generate report for processed data in %s", dir);
