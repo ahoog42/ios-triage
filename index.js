@@ -533,7 +533,7 @@ function generateReport(dir) {
   const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');  
   const data = JSON.parse(appsJSON);
 
-  const templateFile = __base + 'assets/templates/test.hbs';
+  const templateFile = __base + 'html/templates/test.hbs';
   fs.readFile(templateFile, 'utf-8', function(error, source){
     const template = handlebars.compile(source);
     const html = template(data);
