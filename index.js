@@ -11,6 +11,8 @@ const plist = require('plist');
 const path = require('path');
 const handlebars = require('handlebars');
 
+global.__base = __dirname + '/';
+
 program
   .version('0.1.0')
   .description('Incident response tool for iPhone or iPad')
@@ -531,7 +533,7 @@ function generateReport(dir) {
   const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');  
   const data = JSON.parse(appsJSON);
 
-  const templateFile = './assets/templates/test.mustache';
+  const templateFile = __base + 'assets/templates/test.hbs';
   fs.readFile(templateFile, 'utf-8', function(error, source){
     const template = handlebars.compile(source);
     const html = template(data);
