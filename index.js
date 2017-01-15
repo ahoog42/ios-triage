@@ -9,6 +9,7 @@ const child_process = require('child_process');
 const logger = require('./logger.js');
 const plist = require('plist');
 const path = require('path');
+const handlebars = require('handlebars');
 
 program
   .version('0.1.0')
@@ -524,5 +525,43 @@ function processDeviceInfo(deviceInfoXML, callback) {
 
 function generateReport(dir) {
   logger.info("generate report for processed data in %s", dir);
+
+  /*
+  // hack for testing
+  const appsJSONFile = '/Users/hiro/Desktop/ios-triage/dc9363415e5fbf18ea8277986f3b693cf52077da/1484452474895/processed/installedApps.json';
+  const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');  
+  const apps = JSON.parse(appsJSON);
+  */
+
+  const data = {
+    apps: [
+      {
+        "name": "TencentWeiboAccountMigrationDialog",
+        "applicationType": "System",
+        "version": "1.0",
+        "bundleIdentifier": "com.apple.TencentWeiboAccountMigrationDialog"
+      },
+      {
+        "name": "Web",
+        "applicationType": "System",
+        "version": "1.0",
+        "bundleIdentifier": "com.apple.webapp"
+      },
+      {
+        "name": "AccountAuthenticationDialog",
+        "applicationType": "System",
+        "version": "1.0",
+        "bundleIdentifier": "com.apple.AccountAuthenticationDialog"
+      }
+    ]
+  };
+ 
+  const templateFile = '/Users/hiro/git/ios-triage/assets/templates/test.mustache'
+  fs.readFile(templateFile, 'utf-8', function(error, source){
+    const template = handlebars.compile(source);
+    const html = template(data);
+    console.log(html)
+  });
+
 };
 
