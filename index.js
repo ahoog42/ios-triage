@@ -529,7 +529,7 @@ function generateReport(dir) {
   // logger.info("generate report for processed data in %s", dir);
 
   // hack for testing
-  const appsJSONFile = '/Users/hiro/Desktop/ios-triage/dc9363415e5fbf18ea8277986f3b693cf52077da/1484452474895/processed/installedApps.json';
+  const appsJSONFile = '/Users/hiro/Desktop/ios-triage/993aa52471a3e6ea117eb619927d74f3aa7511bf/1484498349919/processed/installedApps.json'
   const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');  
   const data = JSON.parse(appsJSON);
 
