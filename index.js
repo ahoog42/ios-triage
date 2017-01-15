@@ -524,14 +524,14 @@ function processDeviceInfo(deviceInfoXML, callback) {
 
 
 function generateReport(dir) {
-  logger.info("generate report for processed data in %s", dir);
+  // logger.info("generate report for processed data in %s", dir);
 
   // hack for testing
   const appsJSONFile = '/Users/hiro/Desktop/ios-triage/dc9363415e5fbf18ea8277986f3b693cf52077da/1484452474895/processed/installedApps.json';
   const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');  
   const data = JSON.parse(appsJSON);
 
-  const templateFile = '/Users/hiro/git/ios-triage/assets/templates/test.mustache'
+  const templateFile = './assets/templates/test.mustache';
   fs.readFile(templateFile, 'utf-8', function(error, source){
     const template = handlebars.compile(source);
     const html = template(data);
