@@ -217,11 +217,11 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
 
 function getDeviceInfo(udid, wd, callback) { 
 
-  const file_name = 'ideviceinfo.txt';
+  const file_name = 'ideviceinfo.xml';
   const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call ideviceinfo binary
-  const ideviceinfo = child_process.spawn('ideviceinfo', []);
+  const ideviceinfo = child_process.spawn('ideviceinfo', ['--xml']);
 
   // on data events, write chunks to file
   ideviceinfo.stdout.on('data', (chunk) => { 
