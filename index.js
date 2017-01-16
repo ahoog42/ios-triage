@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+const pkg = require('./package.json');
 const program = require('commander');
 const fs = require('fs');
 const os = require('os');
@@ -550,6 +551,7 @@ function generateReport(dir) {
   const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
 
   const data = {};
+  data.cli = pkg.name + ' v' + pkg.version;
   data.device = JSON.parse(deviceJSON);
   data.apps = JSON.parse(appsJSON);
 
