@@ -51,8 +51,14 @@
         <h3 class="card-header">Device</h3>
         <div class="card-block">
           <h4 class="card-title">Device Summary</h4>
-          <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-          <a href="#" class="btn btn-primary">Go somewhere</a>
+            <ul>
+              <li>Device Type: {{device.summary.DeviceClass}}</li>
+              <li>Product Type: {{device.summary.ProductType}}</li>
+              <li>iOS Version: {{device.summary.ProductVersion}}</li>
+              <li>Baseband: {{device.summary.BasebandVersion}}</li>
+              <li>Passcode Protected: {{device.summary.PasswordProtected}}</li>
+          <!-- <p class="card-text">With supporting text below as a natural lead-in to additional content.</p> -->
+          <a href="#" class="btn btn-primary">Device Details</a>
         </div>
       </div>
     </div>
@@ -62,11 +68,12 @@
         <div class="card-block">
         <h4 class="card-title">App Summary</h4>
           <ul>
-              <li>Total apps: {{summary.totalApps}}</li>
-              <li>System apps: {{summary.systemApps}}</li>
-              <li>User apps: {{summary.userApps}}</li>
-              <li>Non-Apple Signed apps: {{summary.nonAppleSigner}}</li>
+              <li>Total apps: {{apps.summary.totalApps}}</li>
+              <li>System apps: {{apps.summary.systemApps}}</li>
+              <li>User apps: {{apps.summary.userApps}}</li>
+              <li>Non-Apple Signed apps: {{apps.summary.nonAppleSigner}}</li>
           </ul>
+          <a href="#" class="btn btn-primary">App Details</a>
         </div>
       </div>
     </div>

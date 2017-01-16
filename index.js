@@ -413,12 +413,14 @@ function processArtifacts(dir, callback) {
 
     fs.stat(deviceInfoXML, function(err, stat) {
       if(!err) {
-        processDeviceInfo(deviceInfoXML, function(err, deviceInfoDetailed) {
+        processDeviceInfo(deviceInfoXML, function(err, deviceInfo, deviceInfoAll) {
           if(!err) {
             logger.info("device info xml processed, writing to disk");
-            const detailedDeviceInfoJSON = JSON.stringify(deviceInfoDetailed);
+            const deviceInfoJSON = JSON.stringify(deviceInfo);
+            const allDeviceInfoJSON = JSON.stringify(deviceInfoAll);
             // FIXME should catch errors, maye use callbacks?
-            fs.writeFile(processedPath + path.sep + 'deviceInfo-Detailed.json', detailedDeviceInfoJSON, 'utf8');
+            fs.writeFile(processedPath + path.sep + 'deviceInfo.json', deviceInfoJSON, 'utf8');
+            fs.writeFile(processedPath + path.sep + 'deviceInfo-All.json', allDeviceInfoJSON, 'utf8');
           } else {
             logger.error("error processing device info: %s", err);
           };
@@ -499,7 +501,7 @@ function processInstalledAppsXML(installedAppsXML, callback) {
 
   // object for summary app data
   installedAppsParsed.summary = {
-    "totalApps":totalApps,
+    "totalApps": totalApps,
     "userApps": userApps,
     "systemApps": systemApps,
     "nonAppleSigner": nonAppleSigner
@@ -514,45 +516,27 @@ function processDeviceInfo(deviceInfoXML, callback) {
   const obj = plist.parse(fs.readFileSync(deviceInfoXML, 'utf8'));
 
   // for further analysis
-  const deviceInfoDetailed = obj;
+  const deviceInfoAll = obj;
 
-  // setup object to stored parsed app properties into
-  /*
-  const installedAppsParsed = {};
-  installedAppsParsed.apps = [];
-
-  for (let prop in obj) {
-    // every prop in array is properties for an app
-    const app = obj[prop];
-    let appInfo = {}; //object to store individual app properties in
-    for(let attrib in app) {
-      switch(attrib) {
-        case "CFBundleName":
-          appInfo.name = app[attrib];
-          break;
-        case "CFBundleVersion":
-          appInfo.version = app[attrib];
-          break;
-        case "CFBundleIdentifier":
-          appInfo.bundleIdentifier = app[attrib];
-          break;
-        case "SignerIdentity":
-          appInfo.signerIdentity = app[attrib];
-          break;
-        case "ApplicationType":
-          appInfo.applicationType = app[attrib];
-          break;
-        default:
-          // otherwise ignore property for now
-          break;
-      };
-    };
-    // now push current appInfo into installedAppsParsed.apps array
-    installedAppsParsed.apps.push(appInfo);
-    // logger.debug("moving to next app");
+  // obj for summary data
+  const deviceInfo = {};
+  deviceInfo.summary = {
+    "BasebandVersion": deviceInfoAll.BasebandVersion,
+    "DeviceClass": deviceInfoAll.DeviceClass,
+    "DeviceColor": deviceInfoAll.DeviceColor,
+    "DeviceName": deviceInfoAll.DeviceName,
+    "ModelNumber": deviceInfoAll.ModelNumber,
+    "PasswordProtected": deviceInfoAll.PasswordProtected,
+    "PhoneNumber": deviceInfoAll.PhoneNumber,
+    "ProductType": deviceInfoAll.ProductType,
+    "ProductVersion": deviceInfoAll.ProductVersion,
+    "SerialNumber": deviceInfoAll.SerialNumber,
+    "TimeZone": deviceInfoAll.TimeZone,
+    "TrustedHostAttached": deviceInfoAll.TrustedHostAttached,
+    "UniqueDeviceID": deviceInfoAll.UniqueDeviceID
   };
-*/
-  callback(null, deviceInfoDetailed);
+
+  callback(null, deviceInfo, deviceInfoAll);
 };
 
 
@@ -560,9 +544,16 @@ function generateReport(dir) {
   // logger.info("generate report for processed data in %s", dir);
 
   // hack for testing
+  const deviceJSONFile = '/Users/hiro/Desktop/ios-triage/dc9363415e5fbf18ea8277986f3b693cf52077da/1484452474895/processed/deviceInfo.json'
+  const deviceJSON = fs.readFileSync(deviceJSONFile, 'utf8');
   const appsJSONFile = '/Users/hiro/Desktop/ios-triage/dc9363415e5fbf18ea8277986f3b693cf52077da/1484452474895/processed/installedApps.json'
-  const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');  
-  const data = JSON.parse(appsJSON);
+  const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
+
+  const data = {};
+  data.device = JSON.parse(deviceJSON);
+  data.apps = JSON.parse(appsJSON);
+
+  logger.debug("data object for handlebar:\n%s", JSON.stringify(data));
 
   const templateFile = __base + 'html/templates/test.hbs';
   fs.readFile(templateFile, 'utf-8', function(error, source){
