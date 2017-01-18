@@ -402,7 +402,7 @@ function processArtifacts(dir, callback) {
     });
 
     // installed apps
-    processInstalledAppsXML(installedAppsXML, function(err, results) {
+    processInstalledAppsXML(dir, function(err, results) {
       if (err) {
         logger.warn(err);
       } else {
@@ -413,9 +413,10 @@ function processArtifacts(dir, callback) {
   };
 };
 
-function processInstalledAppsXML(installedAppsXML, callback) {
-  const artifactPath = path.dirname(installedAppsXML);
-  const processedPath = path.normalize(artifactPath + '/../processed');
+function processInstalledAppsXML(dir, callback) {
+  const artifactPath = path.join(dir, 'artifacts');
+  const processedPath = path.join(dir, 'processed');
+  const installedAppsXML = artifactPath + path.sep + 'installed-apps.xml';
 
   // try to open the installedApps.xml file, otherwise return error 
   fs.stat(installedAppsXML, function(err, stat) {
