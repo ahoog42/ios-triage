@@ -376,13 +376,12 @@ function doDeviceBackup(udid, wd, callback) {
 };
 
 function processArtifacts(dir, callback) {
-  //logger.info("process artifacts in %s", dir);
-
   const processedPath = dir + path.sep + 'processed';
   const artifactPath = dir + path.sep + 'artifacts';
   const installedAppsXML = artifactPath + path.sep + 'installed-apps.xml';
   const deviceInfoXML = artifactPath + path.sep + 'ideviceinfo.xml';
 
+  // if no artifact dir exists, err. 
   if (!fs.existsSync(artifactPath)) {
     return callback("No artifact directory found at " + artifactPath);
   } else {  
@@ -393,6 +392,7 @@ function processArtifacts(dir, callback) {
       console.warn('Processed path already exists, overwriting previous processed data');
     };
 
+    // device info
     processDeviceInfo(deviceInfoXML, function(err, results) {
       if (err) {
         logger.warn(err);
@@ -400,7 +400,8 @@ function processArtifacts(dir, callback) {
         logger.info(results);
       };
     });
- 
+
+    // installed apps
     processInstalledAppsXML(installedAppsXML, function(err, results) {
       if (err) {
         logger.warn(err);
@@ -408,6 +409,7 @@ function processArtifacts(dir, callback) {
         logger.info(results);
       };
    });
+
   };
 };
 
@@ -551,27 +553,35 @@ function processDeviceInfo(deviceInfoXML, callback) {
   
 
 function generateReport(dir) {
-  // logger.info("generate report for processed data in %s", dir);
 
-  // hack for testing
-  const deviceJSONFile = '/Users/hiro/Desktop/ios-triage/dc9363415e5fbf18ea8277986f3b693cf52077da/1484452474895/processed/deviceInfo.json'
-  const deviceJSON = fs.readFileSync(deviceJSONFile, 'utf8');
-  const appsJSONFile = '/Users/hiro/Desktop/ios-triage/dc9363415e5fbf18ea8277986f3b693cf52077da/1484452474895/processed/installedApps.json'
-  const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
+  const processedPath = dir + path.sep + 'processed';
+  const artifactPath = dir + path.sep + 'artifacts';
 
-  const data = {};
-  data.cli = pkg.name + ' v' + pkg.version;
-  data.device = JSON.parse(deviceJSON);
-  data.apps = JSON.parse(appsJSON);
+  // if no artifact dir exists, err. 
+  if (!fs.existsSync(artifactPath)) {
+    return callback("No artifact directory found, run `ios-triage extract <dir>` first");
+  } else {  
+    // see if processed dir exists, if so alert but continue. otherwise, create
+    if (!fs.existsSync(processedPath)) {
+      return callback("No processed directory found, run `ios-triage process <dir>` first");
+    } else {
+      const deviceJSONFile = processedPath + path.sep + 'deviceInfo.json';
+      const appsJSONFile = processedPath + path.sep + 'installedApps.json';
+      const deviceJSON = fs.readFileSync(deviceJSONFile, 'utf8');
+      const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
 
-  logger.debug("data object for handlebar:\n%s", JSON.stringify(data));
+      const data = {};
+      data.cli = pkg.name + ' v' + pkg.version;
+      data.device = JSON.parse(deviceJSON);
+      data.apps = JSON.parse(appsJSON);
 
-  const templateFile = __base + 'html/templates/test.hbs';
-  fs.readFile(templateFile, 'utf-8', function(error, source){
-    const template = handlebars.compile(source);
-    const html = template(data);
-    console.log(html)
-  });
-
+      const templateFile = __base + 'html/templates/test.hbs';
+      fs.readFile(templateFile, 'utf-8', function(error, source){
+        const template = handlebars.compile(source);
+        const html = template(data);
+        console.log(html)
+      });
+    };
+  };
 };
 
