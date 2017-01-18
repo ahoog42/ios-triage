@@ -393,7 +393,7 @@ function processArtifacts(dir, callback) {
     };
 
     // device info
-    processDeviceInfo(deviceInfoXML, function(err, results) {
+    processDeviceInfo(dir, function(err, results) {
       if (err) {
         logger.warn(err);
       } else {
@@ -507,9 +507,10 @@ function processInstalledAppsXML(installedAppsXML, callback) {
   }); 
 };
 
-function processDeviceInfo(deviceInfoXML, callback) {
-  const artifactPath = path.dirname(deviceInfoXML);
-  const processedPath = path.normalize(artifactPath + '/../processed');
+function processDeviceInfo(dir, callback) {
+  const artifactPath = path.join(dir, 'artifacts');
+  const processedPath = path.join(dir, 'processed');
+  const deviceInfoXML = artifactPath + path.sep + 'ideviceinfo.xml';
 
   fs.stat(deviceInfoXML, function(err, stat) {
     if(err) {
