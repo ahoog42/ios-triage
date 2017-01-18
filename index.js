@@ -399,28 +399,27 @@ function processArtifacts(dir, callback) {
       } else {
         logger.info(results);
       };
-    )};
+    });
  
-    processInstalledAppsXML(installedAppsXML, function(err, result) {
+    processInstalledAppsXML(installedAppsXML, function(err, results) {
       if (err) {
         logger.warn(err);
       } else {
         logger.info(results);
       };
-    )};
-
+   });
   };
 };
 
 function processInstalledAppsXML(installedAppsXML, callback) {
-
-  const processedPath = path.dirname(installedAppsXML);
+  const artifactPath = path.dirname(installedAppsXML);
+  const processedPath = path.normalize(artifactPath + '/../processed');
 
   // try to open the installedApps.xml file, otherwise return error 
   fs.stat(installedAppsXML, function(err, stat) {
     if(err) {
       return callback(new Error("Installed apps not processed: " + err));
-    else {
+    } else {
 
   // read and parse plist file
   // TODO: error check the call to plist.parse
@@ -507,7 +506,8 @@ function processInstalledAppsXML(installedAppsXML, callback) {
 };
 
 function processDeviceInfo(deviceInfoXML, callback) {
-  const processedPath = path.dirname(installedAppsXML);
+  const artifactPath = path.dirname(deviceInfoXML);
+  const processedPath = path.normalize(artifactPath + '/../processed');
 
   fs.stat(deviceInfoXML, function(err, stat) {
     if(err) {
@@ -538,7 +538,7 @@ function processDeviceInfo(deviceInfoXML, callback) {
         "UniqueDeviceID": deviceInfoAll.UniqueDeviceID
       };
 
-      logger.info("device info xml processed, writing to disk");
+      logger.info("device info xml processed, writing to %s", processedPath + path.sep + 'deviceInfo.json');
       const deviceInfoJSON = JSON.stringify(deviceInfo);
       const allDeviceInfoJSON = JSON.stringify(deviceInfoAll);
       // FIXME should catch errors, maye use callbacks?
