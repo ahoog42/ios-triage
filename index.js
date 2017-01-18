@@ -383,59 +383,45 @@ function processArtifacts(dir, callback) {
   const installedAppsXML = artifactPath + path.sep + 'installed-apps.xml';
   const deviceInfoXML = artifactPath + path.sep + 'ideviceinfo.xml';
 
-  if (!fs.existsSync(artifactPath)){
-  return callback("No artifact directory found at " + artifactPath);
+  if (!fs.existsSync(artifactPath)) {
+    return callback("No artifact directory found at " + artifactPath);
   } else {  
     // see if processed dir exists, if so alert but continue. otherwise, create
     if (!fs.existsSync(processedPath)) {
      fs.mkdirSync(processedPath);
     } else {
       console.warn('Processed path already exists, overwriting previous processed data');
-    }
+    };
+
+    processDeviceInfo(deviceInfoXML, function(err, results) {
+      if (err) {
+        logger.warn(err);
+      } else {
+        logger.info(results);
+      };
+    )};
  
-    fs.stat(installedAppsXML, function(err, stat) {
-      if(!err) {
-        processInstalledAppsXML(installedAppsXML, function(err, installedAppsParsed, installedAppsDetailed) {
-          if(!err) {
-            logger.info("installed apps xml processed, writing to disk");
-            const parsedAppsJSON = JSON.stringify(installedAppsParsed);
-            const detailedAppsJSON = JSON.stringify(installedAppsDetailed);
-            // FIXME should catch errors, maye use callbacks?
-            fs.writeFile(processedPath + path.sep + 'installedApps.json', parsedAppsJSON, 'utf8');
-            fs.writeFile(processedPath + path.sep + 'installedApps-Detailed.json', detailedAppsJSON, 'utf8');
-          } else {
-            logger.error("error processing installed apps: %s", err);
-          };
-        });
+    processInstalledAppsXML(installedAppsXML, function(err, result) {
+      if (err) {
+        logger.warn(err);
       } else {
-          logger.warn("Could not read installed apps artifact. %s", err);
+        logger.info(results);
       };
-    }); 
+    )};
 
-    fs.stat(deviceInfoXML, function(err, stat) {
-      if(!err) {
-        processDeviceInfo(deviceInfoXML, function(err, deviceInfo, deviceInfoAll) {
-          if(!err) {
-            logger.info("device info xml processed, writing to disk");
-            const deviceInfoJSON = JSON.stringify(deviceInfo);
-            const allDeviceInfoJSON = JSON.stringify(deviceInfoAll);
-            // FIXME should catch errors, maye use callbacks?
-            fs.writeFile(processedPath + path.sep + 'deviceInfo.json', deviceInfoJSON, 'utf8');
-            fs.writeFile(processedPath + path.sep + 'deviceInfo-All.json', allDeviceInfoJSON, 'utf8');
-          } else {
-            logger.error("error processing device info: %s", err);
-          };
-        });
-      } else {
-          logger.warn("Could not read device info artifact. %s", err);
-      };
-    }); 
-
-    callback(null, "success");
   };
 };
 
 function processInstalledAppsXML(installedAppsXML, callback) {
+
+  const processedPath = path.dirname(installedAppsXML);
+
+  // try to open the installedApps.xml file, otherwise return error 
+  fs.stat(installedAppsXML, function(err, stat) {
+    if(err) {
+      return callback(new Error("Installed apps not processed: " + err));
+    else {
+
   // read and parse plist file
   // TODO: error check the call to plist.parse
   const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
@@ -506,40 +492,63 @@ function processInstalledAppsXML(installedAppsXML, callback) {
     "userApps": userApps,
     "systemApps": systemApps,
     "nonAppleSigner": nonAppleSigner
-  }; 
+  };
 
-  callback(null, installedAppsParsed, installedAppsDetailed);
+  logger.info("installed apps xml processed, writing to disk");
+  const parsedAppsJSON = JSON.stringify(installedAppsParsed);
+  const detailedAppsJSON = JSON.stringify(installedAppsDetailed);
+  // FIXME should catch errors, maye use callbacks?
+  fs.writeFile(processedPath + path.sep + 'installedApps.json', parsedAppsJSON, 'utf8');
+  fs.writeFile(processedPath + path.sep + 'installedApps-Detailed.json', detailedAppsJSON, 'utf8');
+
+  callback(null, "processed app data"); 
+    };
+  }); 
 };
 
 function processDeviceInfo(deviceInfoXML, callback) {
-  // read and parse plist file
-  // TODO: error check the call to plist.parse
-  const obj = plist.parse(fs.readFileSync(deviceInfoXML, 'utf8'));
+  const processedPath = path.dirname(installedAppsXML);
 
-  // for further analysis
-  const deviceInfoAll = obj;
+  fs.stat(deviceInfoXML, function(err, stat) {
+    if(err) {
+      return callback(new Error("Installed apps not processed: " + err));
+    } else {
+      // read and parse plist file
+      // TODO: error check the call to plist.parse
+      const obj = plist.parse(fs.readFileSync(deviceInfoXML, 'utf8'));
 
-  // obj for summary data
-  const deviceInfo = {};
-  deviceInfo.summary = {
-    "BasebandVersion": deviceInfoAll.BasebandVersion,
-    "DeviceClass": deviceInfoAll.DeviceClass,
-    "DeviceColor": deviceInfoAll.DeviceColor,
-    "DeviceName": deviceInfoAll.DeviceName,
-    "ModelNumber": deviceInfoAll.ModelNumber,
-    "PasswordProtected": deviceInfoAll.PasswordProtected,
-    "PhoneNumber": deviceInfoAll.PhoneNumber,
-    "ProductType": deviceInfoAll.ProductType,
-    "ProductVersion": deviceInfoAll.ProductVersion,
-    "SerialNumber": deviceInfoAll.SerialNumber,
-    "TimeZone": deviceInfoAll.TimeZone,
-    "TrustedHostAttached": deviceInfoAll.TrustedHostAttached,
-    "UniqueDeviceID": deviceInfoAll.UniqueDeviceID
-  };
+      // for further analysis
+      const deviceInfoAll = obj;
 
-  callback(null, deviceInfo, deviceInfoAll);
+      // obj for summary data
+      const deviceInfo = {};
+      deviceInfo.summary = {
+        "BasebandVersion": deviceInfoAll.BasebandVersion,
+        "DeviceClass": deviceInfoAll.DeviceClass,
+        "DeviceColor": deviceInfoAll.DeviceColor,
+        "DeviceName": deviceInfoAll.DeviceName,
+        "ModelNumber": deviceInfoAll.ModelNumber,
+        "PasswordProtected": deviceInfoAll.PasswordProtected,
+        "PhoneNumber": deviceInfoAll.PhoneNumber,
+        "ProductType": deviceInfoAll.ProductType,
+        "ProductVersion": deviceInfoAll.ProductVersion,
+        "SerialNumber": deviceInfoAll.SerialNumber,
+        "TimeZone": deviceInfoAll.TimeZone,
+        "TrustedHostAttached": deviceInfoAll.TrustedHostAttached,
+        "UniqueDeviceID": deviceInfoAll.UniqueDeviceID
+      };
+
+      logger.info("device info xml processed, writing to disk");
+      const deviceInfoJSON = JSON.stringify(deviceInfo);
+      const allDeviceInfoJSON = JSON.stringify(deviceInfoAll);
+      // FIXME should catch errors, maye use callbacks?
+      fs.writeFile(processedPath + path.sep + 'deviceInfo.json', deviceInfoJSON, 'utf8');
+      fs.writeFile(processedPath + path.sep + 'deviceInfo-All.json', allDeviceInfoJSON, 'utf8');
+    };
+    callback(null,"processed device info");
+  });
 };
-
+  
 
 function generateReport(dir) {
   // logger.info("generate report for processed data in %s", dir);
