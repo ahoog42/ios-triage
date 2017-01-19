@@ -57,6 +57,7 @@
               <li>iOS Version: {{device.summary.ProductVersion}}</li>
               <li>Baseband: {{device.summary.BasebandVersion}}</li>
               <li>Passcode Protected: {{device.summary.PasswordProtected}}</li>
+              <li>Provisioning Profiles: {{pprofiles.summary.pprofilesFound}}</li>
           <!-- <p class="card-text">With supporting text below as a natural lead-in to additional content.</p> -->
           <a href="#" class="btn btn-primary">Device Details</a>
         </div>
@@ -78,6 +79,33 @@
       </div>
     </div>
   </div>
+
+  <div class="row">
+    <div class="col-sm-6">
+      <div class="card">
+        <h3 class="card-header">Backup</h3>
+        <div class="card-block">
+          <h4 class="card-title">Backup Summary</h4>
+            <p class="card-text">Not yet processed</p>
+          <a href="#" class="btn btn-primary">Backup Details</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="card">
+        <h3 class="card-header">Logs</h3>
+        <div class="card-block">
+        <h4 class="card-title">Log Summary</h4>
+          <ul>
+              <li>Syslog: not yet processed</li>
+              <li>Crash Logs: not yet processed</li>
+          </ul>
+          <a href="#" class="btn btn-primary">Log Details</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
 </div>
 
     <footer class="footer">

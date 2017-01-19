@@ -615,13 +615,17 @@ function generateReport(dir) {
     } else {
       const deviceJSONFile = processedPath + path.sep + 'deviceInfo.json';
       const appsJSONFile = processedPath + path.sep + 'installedApps.json';
+      const pprofilesJSONFile = processedPath + path.sep + 'pprofiles.json';
+
       const deviceJSON = fs.readFileSync(deviceJSONFile, 'utf8');
       const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
+      const pprofilesJSON = fs.readFileSync(pprofilesJSONFile, 'utf8');
 
       const data = {};
       data.cli = pkg.name + ' v' + pkg.version;
       data.device = JSON.parse(deviceJSON);
       data.apps = JSON.parse(appsJSON);
+      data.pprofiles = JSON.parse(pprofilesJSON);
 
       const templateFile = __base + 'html/templates/test.hbs';
       fs.readFile(templateFile, 'utf-8', function(error, source){
