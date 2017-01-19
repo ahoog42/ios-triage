@@ -417,6 +417,15 @@ function processArtifacts(dir, callback) {
       };
    });
 
+    // provisioning profiles
+    processProvisioningProfiles(dir, function(err, results) {
+      if (err) {
+        logger.warn(err);
+      } else {
+        logger.info(results);
+      };
+   });
+
   };
 };
 
@@ -566,8 +575,16 @@ function processProvisioningProfiles(dir, callback) {
   const ideviceprovisionLog = artifactPath + path.sep + '/pprofiles/ideviceprovision.log';
 
   try {
-    const pprofiles = fs.readFileSync(ideviceprovisionLog);
-    console.debug('read pprofile.log but should catch read error:' + ideviceprovisionLog);
+    const pprofilesLog = fs.readFileSync(ideviceprovisionLog);
+    const lines = pprofilesLog.toString().split('\n');
+    const firstLine = lines[0];
+    // the first line of this file "always" contains the following:
+    // Device has 6 provisioning profiles installed:
+    // let's split on " " and grab the 3rd items. Can you say fragile?!
+    const pprofiles = firstLine.split(' ')[3];
+    logger.info("pprofiles found: %d", pprofiles);
+
+    callback(null,"processed pprofiles");
 /*
       logger.info("device info xml processed, writing to %s", processedPath + path.sep + 'deviceInfo.json');
       const deviceInfoJSON = JSON.stringify(deviceInfo);
