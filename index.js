@@ -113,7 +113,7 @@ function extractArtifacts(options) {
         getInstalledApps(udid, wd, callback);
       },
       provisioningProfiles: function(callback) {
-        listProvisioningProfiles(udid, wd, callback);
+        copyProvisioningProfiles(udid, wd, callback);
       },
       crashReports: function(callback) {
         getCrashReports(udid, wd, callback);
@@ -280,13 +280,20 @@ function getInstalledApps(udid, wd, callback) {
   });
 };
 
-function listProvisioningProfiles(udid, wd, callback) { 
+function copyProvisioningProfiles(udid, wd, callback) { 
 
-  const file_name = 'provisioning-profiles.txt';
-  const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  // ideviceprovision writes any pprofiles to disk vs. returning to stdout
+  // creating a directory to store this data and putting stdout into log file
+  const wd_pprofiles = wd + '/artifacts/pprofiles/';
+  if (!fs.existsSync(wd_pprofiles)){
+    fs.mkdirSync(wd_pprofiles);
+  }
+
+  const file_name = 'ideviceprovision.log';
+  const file = fs.createWriteStream(wd_pprofiles + file_name);
 
   // call ideviceprovision binary
-  const ideviceprovision = child_process.spawn('ideviceprovision', ['list']);
+  const ideviceprovision = child_process.spawn('ideviceprovision', ['copy', wd_pprofiles]);
 
   // on data events, write chunks to file
   ideviceprovision.stdout.on('data', (chunk) => { 
@@ -553,6 +560,27 @@ function processDeviceInfo(dir, callback) {
   });
 };
   
+function processProvisioningProfiles(dir, callback) {
+  const artifactPath = path.join(dir, 'artifacts');
+  const processedPath = path.join(dir, 'processed');
+  const ideviceprovisionLog = artifactPath + path.sep + '/pprofiles/ideviceprovision.log';
+
+  try {
+    const pprofiles = fs.readFileSync(ideviceprovisionLog);
+    console.debug('read pprofile.log but should catch read error:' + ideviceprovisionLog);
+/*
+      logger.info("device info xml processed, writing to %s", processedPath + path.sep + 'deviceInfo.json');
+      const deviceInfoJSON = JSON.stringify(deviceInfo);
+      const allDeviceInfoJSON = JSON.stringify(deviceInfoAll);
+      // FIXME should catch errors, maye use callbacks?
+      fs.writeFile(processedPath + path.sep + 'deviceInfo.json', deviceInfoJSON, 'utf8');
+      fs.writeFile(processedPath + path.sep + 'deviceInfo-All.json', allDeviceInfoJSON, 'utf8');
+      callback(null,"processed device info");
+*/  
+  } catch(err) {
+      return callback(new Error("Provisioning profiles data not processed: " + err));
+  };
+};
 
 function generateReport(dir) {
 
