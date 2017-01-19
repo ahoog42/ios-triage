@@ -581,19 +581,20 @@ function processProvisioningProfiles(dir, callback) {
     // the first line of this file "always" contains the following:
     // Device has 6 provisioning profiles installed:
     // let's split on " " and grab the 3rd items. Can you say fragile?!
-    const pprofiles = firstLine.split(' ')[3];
-    logger.info("pprofiles found: %d", pprofiles);
+    const words = firstLine.split(' ');
+    const pprofilesFound = words[2];
+    logger.debug("pprofiles found: %s", pprofilesFound);
 
+    const pprofiles = {};
+    pprofiles.summary = {
+      "pprofilesFound": pprofilesFound
+    }
+
+    logger.info("pprofiles processed, writing to %s", processedPath + path.sep + 'pprofiles.json');
+    const pprofilesJSON = JSON.stringify(pprofiles);
+    // FIXME should catch errors, maye use callbacks?
+    fs.writeFile(processedPath + path.sep + 'pprofiles.json', pprofilesJSON, 'utf8');
     callback(null,"processed pprofiles");
-/*
-      logger.info("device info xml processed, writing to %s", processedPath + path.sep + 'deviceInfo.json');
-      const deviceInfoJSON = JSON.stringify(deviceInfo);
-      const allDeviceInfoJSON = JSON.stringify(deviceInfoAll);
-      // FIXME should catch errors, maye use callbacks?
-      fs.writeFile(processedPath + path.sep + 'deviceInfo.json', deviceInfoJSON, 'utf8');
-      fs.writeFile(processedPath + path.sep + 'deviceInfo-All.json', allDeviceInfoJSON, 'utf8');
-      callback(null,"processed device info");
-*/  
   } catch(err) {
       return callback(new Error("Provisioning profiles data not processed: " + err));
   };
