@@ -12,6 +12,7 @@ const plist = require('plist');
 const path = require('path');
 const handlebars = require('handlebars');
 const copydir = require('copy-dir');
+const lineReader = require('readline')
 
 global.__base = __dirname + '/';
 
@@ -406,10 +407,8 @@ function doDeviceBackup(udid, wd, callback) {
 };
 
 function processArtifacts(dir, callback) {
-  const processedPath = dir + path.sep + 'processed';
-  const artifactPath = dir + path.sep + 'artifacts';
-  const installedAppsXML = artifactPath + path.sep + 'installed-apps.xml';
-  const deviceInfoXML = artifactPath + path.sep + 'ideviceinfo.xml';
+  const processedPath = path.join(dir, 'processed');
+  const artifactPath = path.join(dir, 'artifacts');
 
   // if no artifact dir exists, err. 
   if (!fs.existsSync(artifactPath)) {
@@ -457,6 +456,16 @@ function processArtifacts(dir, callback) {
         logger.info(results);
       };
    });
+
+    // process crash reports 
+    processCrashReports(dir, function(err, results) {
+      if (err) {
+        logger.warn(err);
+      } else {
+        logger.info(results);
+      };
+   });
+
   };
 };
 
@@ -649,14 +658,47 @@ function processSyslog(dir, callback) {
         syslog.summary = {
           "lines": count
         };
-        logger.info("syslog processed, writing to %s", path.join(processedPath, 'syslog.json'));
+        logger.debug("syslog processed, writing to %s", path.join(processedPath, 'syslog.json'));
         logger.debug('syslog object: %s', JSON.stringify(syslog));
         const syslogJSON = JSON.stringify(syslog);
         // FIXME should catch errors, maybe use callbacks?
         fs.writeFile(path.join(processedPath, 'syslog.json'), syslogJSON, 'utf8');
+        callback(null, 'syslog data processed');
       });
   } catch(err) {
       return new Error("Syslog data not processed: " + err);
+  };
+};
+
+function processCrashReports(dir, callback) {
+  const artifactPath = path.join(dir, 'artifacts');
+  const processedPath = path.join(dir, 'processed');
+  const crashreportPath = path.join(artifactPath, 'crash_reports');
+  const crashreportLog = path.join(crashreportPath, 'crashlogs.txt');
+
+
+  try {
+    let count = 0;
+    fs.createReadStream(crashreportLog)
+      .on('data', function(chunk) {
+        for (let i=0; i < chunk.length; ++i) {
+          if (chunk[i] == 10) count++;
+        };
+      })
+      .on('end', function() {
+        const crashreports = {};
+        crashreports.summary = {
+          "reports": count
+        };
+        logger.info("crash report data processed, writing to %s", path.join(processedPath, 'crashreports.json'));
+        logger.debug('crashreports object: %s', JSON.stringify(crashreports));
+        const crashreportsJSON = JSON.stringify(crashreports);
+        // FIXME should catch errors, maybe use callbacks?
+        fs.writeFile(path.join(processedPath, 'crashreports.json'), crashreportsJSON, 'utf8');
+        callback(null, 'crash report data processed');
+      });
+  } catch(err) {
+      return new Error("Crash report data not processed: " + err);
   };
 };
 
