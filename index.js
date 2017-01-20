@@ -15,20 +15,26 @@ const copydir = require('copy-dir');
 
 global.__base = __dirname + '/';
 
-
 program
-  .version('0.1.0')
+  .version(pkg.version)
   .description('Incident response tool for iPhone or iPad')
   .option('--debug', 'Display debugging output')
 
 program
   .command('extract')
+  .arguments('<dir')
   .description('Extract IR artifacts from iPhone or iPad')
   .option('-b, --backup', 'Backup iOS device')
-  .option('--syslog-timeout <ms>', 'Optional timeout for how long to collect syslong, e.g. 86400 to collect for a day')
-  .action(function(options) {
+  .option('--syslog-timeout <seconds>', 'Optional timeout for how long to collect syslong, e.g. 86400 to collect for a day')
+  .action(function(dir, options) {
     if (program.debug) { logger.transports.console.level = 'debug'; };
-    extractArtifacts(options);
+    extractArtifacts(dir, options, function(err, runStatus) {
+      if (err) { 
+        logger.error(err);
+      } else {
+        logger.info(runStatus);
+      };
+    });
   });
 
 program
@@ -38,7 +44,11 @@ program
   .action(function(dir) {
     if (program.debug) { logger.transports.console.level = 'debug'; };
     processArtifacts(dir, function(err, runStatus) {
-      if(err) { logger.error(err); };
+      if (err) { 
+        logger.error(err); 
+      } else {
+        logger.info(runStatus);
+      };
     });
   });
 
@@ -49,7 +59,11 @@ program
   .action(function(dir) {
     if (program.debug) { logger.transports.console.level = 'debug'; };
     generateReport(dir, function(err, runStatus) {
-      if(err) { logger.error(err); };
+      if (err) { 
+        logger.error(err); 
+      } else {
+        logger.info(runStatus);
+      };
     });
   });
 
@@ -91,17 +105,17 @@ function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
   return(wd_udid_epoch);
 }
 
-function extractArtifacts(options) {
+function extractArtifacts(dir, options, callback) {
   // let's first get the UDID...if we can't do this successfully, we have a problem 
-  getUDID(function (error, udid) {
-    if (error) { 
-      return logger.error(error); 
+  getUDID(function (err, udid) {
+    if (err) { 
+      return callback(new Error(err)); 
     };
 
     // no error getting UDID so time to fetch data
     // first we'll setup the working directory, saving data in unique dir each time based on epoch time
     const currentEpoch = new Date().getTime(); 
-    const wd = setWorkingDirectory(program.output, udid, currentEpoch);
+    const wd = setWorkingDirectory(dir, udid, currentEpoch);
 
     const idevicesyslog = getDeviceSyslog(udid, wd, options.syslogTimeout); 
 
@@ -111,7 +125,7 @@ function extractArtifacts(options) {
           doDeviceBackup(udid, wd, callback);
         } else {
           logger.info("Skipping device backup");
-          // this callback() iw critical so async.parallel can returm
+          // this callback() is critical so async.parallel can return
           callback();
         }
       },
@@ -133,10 +147,10 @@ function extractArtifacts(options) {
         logger.info("completed all extraction functions so we'll now kill deviceSyslog");
         idevicesyslog.kill('SIGINT');
       } else {
-        logger.info("waiting %d ms for syslog to execute", options.syslogTimeout);
+        logger.info("waiting %d seconds for syslog to execute", options.syslogTimeout);
       };
+      callback(null, 'extract complete');
     }); 
- 
   });
 };
 
@@ -186,7 +200,7 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
   if (syslogTimeout) {
     // syslog timeout was specified so run with that user setting 
     // FIX: add check to make sure syslogTimeout is an int or catch the conversion error
-    userTimeout = Number(syslogTimeout);
+    userTimeout = Number(syslogTimeout)*1000;
   };
 
   // execFile maxBuffer is set to 200k but I've overode it here to 5MB. I'll probably
@@ -632,7 +646,7 @@ function generateReport(dir, callback) {
       // copy assets if needed, assuming if css dir exists files were copied
       // a user could muck this up if they tinker in those dirs but punting for now
       if(!fs.existsSync(cssPath)) {
-        const pkgAssetPath = path.join(__base, 'html', 'assets');
+        const pkgAssetPath = path.join(__base, 'html', 'bootstrap4');
         copydir.sync(pkgAssetPath, reportPath);
       };
 
