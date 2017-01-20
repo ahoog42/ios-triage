@@ -11,6 +11,7 @@ const logger = require('./logger.js');
 const plist = require('plist');
 const path = require('path');
 const handlebars = require('handlebars');
+const copydir = require('copy-dir');
 
 global.__base = __dirname + '/';
 
@@ -608,10 +609,12 @@ function processProvisioningProfiles(dir, callback) {
   };
 };
 
-function generateReport(dir) {
+function generateReport(dir, callback) {
 
-  const processedPath = dir + path.sep + 'processed';
-  const artifactPath = dir + path.sep + 'artifacts';
+  const processedPath = path.join(dir, 'processed');
+  const artifactPath = path.join(dir, 'artifacts');
+  const reportPath = path.join(dir,'reports');
+  const cssPath = path.join(reportPath,'assets','dist','css');
 
   // if no artifact dir exists, err. 
   if (!fs.existsSync(artifactPath)) {
@@ -621,6 +624,19 @@ function generateReport(dir) {
     if (!fs.existsSync(processedPath)) {
       return callback("No processed directory found, run `ios-triage process <dir>` first");
     } else {
+      // create report dir and copy assests if needed
+      if(!fs.existsSync(reportPath)) {
+       fs.mkdirSync(reportPath);
+      } 
+
+      // copy assets if needed, assuming if css dir exists files were copied
+      // a user could muck this up if they tinker in those dirs but punting for now
+      if(!fs.existsSync(cssPath)) {
+        const pkgAssetPath = path.join(__base, 'html', 'assets');
+        copydir.sync(pkgAssetPath, reportPath);
+      };
+
+      // read json data files to pass to handlebar template
       const deviceJSONFile = processedPath + path.sep + 'deviceInfo.json';
       const appsJSONFile = processedPath + path.sep + 'installedApps.json';
       const pprofilesJSONFile = processedPath + path.sep + 'pprofiles.json';
@@ -635,12 +651,16 @@ function generateReport(dir) {
       data.apps = JSON.parse(appsJSON);
       data.pprofiles = JSON.parse(pprofilesJSON);
 
-      const templateFile = __base + 'html/templates/test.hbs';
+      const templateFile = __base + 'html/templates/index.hbs';
       fs.readFile(templateFile, 'utf-8', function(error, source){
         const template = handlebars.compile(source);
         const html = template(data);
-        console.log(html)
+        // copy html to <dir>/reports/index.html
+        const indexHTML = path.join(reportPath,'index.html');
+        fs.writeFile(indexHTML, html, 'utf8');
+        logger.info('Reports written to %s', indexHTML);
       });
+    callback(null, "report generated");
     };
   };
 };
