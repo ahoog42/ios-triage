@@ -9,7 +9,7 @@ const logger = new (winston.Logger)({
     new (winston.transports.Console)({
       timestamp: tsFormat,
       colorize: true,
-      level: 'debug'
+      level: 'info'
     })
 // will add later when i figure out how to either update filename from calling js
 //    new (winston.transports.File)({

@@ -14,11 +14,11 @@ const handlebars = require('handlebars');
 
 global.__base = __dirname + '/';
 
+
 program
   .version('0.1.0')
   .description('Incident response tool for iPhone or iPad')
-  .option('-o, --output [directory]', 'Set output directory')
-  .option('-v, --verbose', 'Display verbose output')
+  .option('--debug', 'Display debugging output')
 
 program
   .command('extract')
@@ -26,7 +26,8 @@ program
   .option('-b, --backup', 'Backup iOS device')
   .option('--syslog-timeout <ms>', 'Optional timeout for how long to collect syslong, e.g. 86400 to collect for a day')
   .action(function(options) {
-      extractArtifacts(options);
+    if (program.debug) { logger.transports.console.level = 'debug'; };
+    extractArtifacts(options);
   });
 
 program
@@ -34,6 +35,7 @@ program
   .arguments('<dir>')
   .description('Process extracted artifacts in <dir>')
   .action(function(dir) {
+    if (program.debug) { logger.transports.console.level = 'debug'; };
     processArtifacts(dir, function(err, runStatus) {
       if(err) { logger.error(err); };
     });
@@ -44,6 +46,7 @@ program
   .arguments('<dir>')
   .description('Generate iOS IR reports from <dir>')
   .action(function(dir) {
+    if (program.debug) { logger.transports.console.level = 'debug'; };
     generateReport(dir, function(err, runStatus) {
       if(err) { logger.error(err); };
     });
@@ -52,7 +55,21 @@ program
 program.parse(process.argv);
 
 // if program was called with no arguments, show help.
-if (program.args.length === 0) program.help();
+if (program.args.length === 0) {
+  program.help();
+} else {
+  // check to make sure command is valid, if not show help
+  var validCommands = program.commands.map(function(cmd){
+      return cmd.name;
+  });
+  var invalidCommands = program.args.filter(function(cmd){
+      //if command executed it will be an object and not a string
+      return (typeof cmd === 'string' && validCommands.indexOf(cmd) === -1);
+  });
+  if (invalidCommands.length) {
+      console.log('\n [ERROR] - Invalid command: "%s". See "--help" for a list of available commands.\n', invalidCommands.join(', '));
+  };
+};
 
 function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
   let wd = "";
