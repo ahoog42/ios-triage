@@ -97,7 +97,11 @@
         <div class="card-block">
         <h4 class="card-title">Log Summary</h4>
           <ul>
-              <li>Syslog: not yet processed</li>
+            {{#if syslog}}
+              <li>Syslog: {{syslog.summary.lines}} lines</li>
+            {{else}}
+              <li>Syslog: {{syslog.summary.lines}} lines</li>
+            {{/if}}
               <li>Crash Logs: not yet processed</li>
           </ul>
           <a href="#" class="btn btn-primary">Log Details</a>

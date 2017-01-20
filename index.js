@@ -22,7 +22,7 @@ program
 
 program
   .command('extract')
-  .arguments('<dir')
+  .arguments('<dir>')
   .description('Extract IR artifacts from iPhone or iPad')
   .option('-b, --backup', 'Backup iOS device')
   .option('--syslog-timeout <seconds>', 'Optional timeout for how long to collect syslong, e.g. 86400 to collect for a day')
@@ -449,6 +449,14 @@ function processArtifacts(dir, callback) {
       };
    });
 
+    // process syslog 
+    processSyslog(dir, function(err, results) {
+      if (err) {
+        logger.warn(err);
+      } else {
+        logger.info(results);
+      };
+   });
   };
 };
 
@@ -623,6 +631,35 @@ function processProvisioningProfiles(dir, callback) {
   };
 };
 
+function processSyslog(dir, callback) {
+  const artifactPath = path.join(dir, 'artifacts');
+  const processedPath = path.join(dir, 'processed');
+  const syslogFile = path.join(artifactPath, 'syslog.txt');
+
+  try {
+    let count = 0;
+    fs.createReadStream(syslogFile)
+      .on('data', function(chunk) {
+        for (let i=0; i < chunk.length; ++i) {
+          if (chunk[i] == 10) count++;
+        };
+      })
+      .on('end', function() {
+        const syslog = {};
+        syslog.summary = {
+          "lines": count
+        };
+        logger.info("syslog processed, writing to %s", path.join(processedPath, 'syslog.json'));
+        logger.debug('syslog object: %s', JSON.stringify(syslog));
+        const syslogJSON = JSON.stringify(syslog);
+        // FIXME should catch errors, maybe use callbacks?
+        fs.writeFile(path.join(processedPath, 'syslog.json'), syslogJSON, 'utf8');
+      });
+  } catch(err) {
+      return new Error("Syslog data not processed: " + err);
+  };
+};
+
 function generateReport(dir, callback) {
 
   const processedPath = path.join(dir, 'processed');
@@ -651,19 +688,24 @@ function generateReport(dir, callback) {
       };
 
       // read json data files to pass to handlebar template
-      const deviceJSONFile = processedPath + path.sep + 'deviceInfo.json';
-      const appsJSONFile = processedPath + path.sep + 'installedApps.json';
-      const pprofilesJSONFile = processedPath + path.sep + 'pprofiles.json';
+      const deviceJSONFile = path.join(processedPath, 'deviceInfo.json');
+      const appsJSONFile = path.join(processedPath, 'installedApps.json');
+      const pprofilesJSONFile = path.join(processedPath, 'pprofiles.json');
+      const syslogJSONFile = path.join(processedPath, 'syslog.json');
 
       const deviceJSON = fs.readFileSync(deviceJSONFile, 'utf8');
       const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
       const pprofilesJSON = fs.readFileSync(pprofilesJSONFile, 'utf8');
+      const syslogJSON = fs.readFileSync(syslogJSONFile, 'utf8');
 
       const data = {};
       data.cli = pkg.name + ' v' + pkg.version;
       data.device = JSON.parse(deviceJSON);
       data.apps = JSON.parse(appsJSON);
       data.pprofiles = JSON.parse(pprofilesJSON);
+      data.syslog = JSON.parse(syslogJSON);
+
+      logger.debug(JSON.stringify(data));
 
       const templateFile = __base + 'html/templates/index.hbs';
       fs.readFile(templateFile, 'utf-8', function(error, source){
