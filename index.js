@@ -757,6 +757,27 @@ function generateReport(dir, callback) {
 
       logger.debug(JSON.stringify(data));
 
+      const headerPartialFile = __base + 'html/templates/partials/header.hbs';
+      const headerPartial = handlebars.compile(fs.readFileSync(headerPartialFile, 'utf-8'));
+      handlebars.registerPartial('headerPartial', headerPartial);
+
+      const topnavbarPartialFile = __base + 'html/templates/partials/topnavbar.hbs';
+      const topnavbarPartial = handlebars.compile(fs.readFileSync(topnavbarPartialFile, 'utf-8'));
+      handlebars.registerPartial('topnavbarPartial', topnavbarPartial);
+
+      const footerPartialFile = __base + 'html/templates/partials/footer.hbs';
+      const footerPartial = handlebars.compile(fs.readFileSync(footerPartialFile, 'utf-8'));
+      handlebars.registerPartial('footerPartial', footerPartial);
+
+/*
+      // async method bit me...tried to compile index template before partial
+      // was complete. Moved to sync for now but could do async.series too
+      fs.readFile(navbarPartialFile, 'utf-8', function(error, partial){
+        const navbarPartial = handlebars.compile(partial);
+        handlebars.registerPartial('navbarPartial', navbarPartial);
+      });
+*/
+
       const templateFile = __base + 'html/templates/index.hbs';
       fs.readFile(templateFile, 'utf-8', function(error, source){
         const template = handlebars.compile(source);

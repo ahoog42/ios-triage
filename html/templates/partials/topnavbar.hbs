@@ -1,0 +1,23 @@
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-toggleable-md navbar-inverse fixed-top bg-inverse">
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <a class="navbar-brand" href="#">ios-triage</a>
+      <div class="collapse navbar-collapse" id="navbarCollapse">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item {{#if details_active}}active{{/if}}">
+            <a class="nav-link" href="#">Details <span class="sr-only">(current)</span></a>
+          </li>
+          <li class="nav-item {{#if issues_active}}active{{/if}}">
+            <a class="nav-link" href="#">Issues</a>
+          </li>
+          <li class="nav-item {{#if diffs_active}}active{{/if}}">
+            <a class="nav-link" href="#">Diffs</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{#if community_active}}active{{/if}}" href="#">Community</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
