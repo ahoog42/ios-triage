@@ -100,9 +100,13 @@
             {{#if syslog}}
               <li>Syslog: {{syslog.summary.lines}} lines</li>
             {{else}}
-              <li>Syslog: {{syslog.summary.lines}} lines</li>
+              <li>Syslog: not present</li>
             {{/if}}
-              <li>Crash Logs: not yet processed</li>
+            {{#if crashreports}}
+              <li>Crash Reports: {{crashreports.summary.reports}} crashes</li>
+            {{else}}
+              <li>Crash Reports: None</li>
+            {{/if}}
           </ul>
           <a href="#" class="btn btn-primary">Log Details</a>
         </div>

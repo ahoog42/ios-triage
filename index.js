@@ -648,10 +648,9 @@ function processSyslog(dir, callback) {
   try {
     let count = 0;
     fs.createReadStream(syslogFile)
+      .pipe(split())
       .on('data', function(chunk) {
-        for (let i=0; i < chunk.length; ++i) {
-          if (chunk[i] == 10) count++;
-        };
+          count++;
       })
       .on('end', function() {
         const syslog = {};
@@ -735,11 +734,13 @@ function generateReport(dir, callback) {
       const appsJSONFile = path.join(processedPath, 'installedApps.json');
       const pprofilesJSONFile = path.join(processedPath, 'pprofiles.json');
       const syslogJSONFile = path.join(processedPath, 'syslog.json');
+      const crashreportsJSONFile = path.join(processedPath, 'crashreports.json');
 
       const deviceJSON = fs.readFileSync(deviceJSONFile, 'utf8');
       const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
       const pprofilesJSON = fs.readFileSync(pprofilesJSONFile, 'utf8');
       const syslogJSON = fs.readFileSync(syslogJSONFile, 'utf8');
+      const crashreportsJSON = fs.readFileSync(crashreportsJSONFile, 'utf8');
 
       const data = {};
       data.cli = pkg.name + ' v' + pkg.version;
@@ -747,6 +748,7 @@ function generateReport(dir, callback) {
       data.apps = JSON.parse(appsJSON);
       data.pprofiles = JSON.parse(pprofilesJSON);
       data.syslog = JSON.parse(syslogJSON);
+      data.crashreports = JSON.parse(crashreportsJSON);
 
       logger.debug(JSON.stringify(data));
 
