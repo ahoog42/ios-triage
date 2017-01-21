@@ -12,7 +12,7 @@ const plist = require('plist');
 const path = require('path');
 const handlebars = require('handlebars');
 const copydir = require('copy-dir');
-const lineReader = require('readline')
+const split = require('split');
 
 global.__base = __dirname + '/';
 
@@ -680,10 +680,11 @@ function processCrashReports(dir, callback) {
   try {
     let count = 0;
     fs.createReadStream(crashreportLog)
-      .on('data', function(chunk) {
-        for (let i=0; i < chunk.length; ++i) {
-          if (chunk[i] == 10) count++;
-        };
+      .pipe(split())
+      .on('data', function(line) {
+        if (line.startsWith('Copy: ')) {
+          count++;
+        }
       })
       .on('end', function() {
         const crashreports = {};
