@@ -778,15 +778,24 @@ function generateReport(dir, callback) {
       });
 */
 
-      const templateFile = __base + 'html/templates/index.hbs';
-      fs.readFile(templateFile, 'utf-8', function(error, source){
-        const template = handlebars.compile(source);
-        const html = template(data);
+      const indexTemplateFile = __base + 'html/templates/index.hbs';
+      fs.readFile(indexTemplateFile, 'utf-8', function(error, source){
+        const indexTemplate = handlebars.compile(source);
+        const indexHTML = indexTemplate(data);
         // copy html to <dir>/reports/index.html
-        const indexHTML = path.join(reportPath,'index.html');
-        fs.writeFile(indexHTML, html, 'utf8');
-        logger.info('Reports written to %s', indexHTML);
+        const indexHTMLFile = path.join(reportPath,'index.html');
+        fs.writeFile(indexHTMLFile, indexHTML, 'utf8');
       });
+
+      const issuesTemplateFile = __base + 'html/templates/issues.hbs';
+      fs.readFile(issuesTemplateFile, 'utf-8', function(error, source){
+        const issuesTemplate = handlebars.compile(source);
+        const issuesHTML = issuesTemplate(data);
+        // copy html to <dir>/reports/index.html
+        const issuesHTMLFile = path.join(reportPath,'issues.html');
+        fs.writeFile(issuesHTMLFile, issuesHTML, 'utf8');
+      });
+
     callback(null, "report generated");
     };
   };

@@ -7,16 +7,16 @@
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav mr-auto">
           <li class="nav-item {{#if details_active}}active{{/if}}">
-            <a class="nav-link" href="#">Details <span class="sr-only">(current)</span></a>
+            <a class="nav-link" href="index.html">Details {{#if details_active}}<span class="sr-only">(current)</span>{{/if}}</a>
           </li>
           <li class="nav-item {{#if issues_active}}active{{/if}}">
-            <a class="nav-link" href="#">Issues</a>
+            <a class="nav-link" href="issues.html">Issues {{#if issues_active}}<span class="sr-only">(current)</span>{{/if}}</a>
           </li>
           <li class="nav-item {{#if diffs_active}}active{{/if}}">
-            <a class="nav-link" href="#">Diffs</a>
+            <a class="nav-link" href="diffs.html">Diffs {{#if diff_active}}<span class="sr-only">(current)</span>{{/if}}</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link {{#if community_active}}active{{/if}}" href="#">Community</a>
+          <li class="nav-item {{#if community_active}}active{{/if}}">
+            <a class="nav-link " href="community.html">Community {{#if community_active}}<span class="sr-only">(current)</span>{{/if}}</a>
           </li>
         </ul>
       </div>
