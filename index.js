@@ -677,18 +677,23 @@ function processCrashReports(dir, callback) {
 
 
   try {
-    let count = 0;
+    let count = 1;
+    const filenames = [];
     fs.createReadStream(crashreportLog)
       .pipe(split())
       .on('data', function(line) {
         if (line.startsWith('Copy: ')) {
           count++;
+          // example line: Copy: DiagnosticLogs/security.log.20170119T084705Z
+          // split on ' ' and push the 2nd field to an array
+          filenames.push(line.split(' ')[1]);
         }
       })
       .on('end', function() {
         const crashreports = {};
         crashreports.summary = {
-          "reports": count
+          "reports": count,
+          "filenames": filenames
         };
         logger.info("crash report data processed, writing to %s", path.join(processedPath, 'crashreports.json'));
         logger.debug('crashreports object: %s', JSON.stringify(crashreports));
