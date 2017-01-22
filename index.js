@@ -775,7 +775,7 @@ function generateReport(dir, callback) {
 */
 
       // compile handlebarsjs templates, need to add diff json data files next
-      const templateList = ["index", "issues", "diffs", "community"];
+      const templateList = ["index", "issues", "diffs", "community", "apps"];
       templateList.forEach(function (templateName) {
         let templateFile = __base + 'html/templates/' + templateName + '.hbs';
         logger.debug("reading temple file: %s", templateFile);
