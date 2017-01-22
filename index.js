@@ -249,32 +249,85 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
 
 function getDeviceInfo(udid, wd, callback) { 
 
-  const file_name = 'ideviceinfo.xml';
-  const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  // idevice info can be run with no "domains" or domains supplied, netting more info
+  // we'll build an array of domains to call and do this in a loop
 
-  // call ideviceinfo binary
-  const ideviceinfo = child_process.spawn('ideviceinfo', ['--xml']);
+  const domains = [
+    "", 
+    "com.apple.disk_usage", 
+    "com.apple.disk_usage.factory", 
+    "com.apple.mobile.battery", 
+    "com.apple.iqagent", 
+    "com.apple.purplebuddy", 
+    "com.apple.PurpleBuddy", 
+    "com.apple.mobile.chaperone", 
+    "com.apple.mobile.third_party_termination", 
+    "com.apple.mobile.lockdownd", 
+    "com.apple.mobile.lockdown_cache", 
+    "com.apple.xcode.developerdomain", 
+    "com.apple.international", 
+    "com.apple.mobile.data_sync", 
+    "com.apple.mobile.tethered_sync", 
+    "com.apple.mobile.mobile_application_usage", 
+    "com.apple.mobile.backup", 
+    "com.apple.mobile.nikita", 
+    "com.apple.mobile.restriction", 
+    "com.apple.mobile.user_preferences", 
+    "com.apple.mobile.sync_data_class", 
+    "com.apple.mobile.software_behavior", 
+    "com.apple.mobile.iTunes.SQLMusicLibraryPostProcessCommands", 
+    "com.apple.mobile.iTunes.accessories", 
+    "com.apple.mobile.internal", 
+    "com.apple.mobile.wireless_lockdown", 
+    "com.apple.fairplay", 
+    "com.apple.iTunes", 
+    "com.apple.mobile.iTunes.store", 
+    "com.apple.mobile.iTunes"
+  ];
 
-  // on data events, write chunks to file
-  ideviceinfo.stdout.on('data', (chunk) => { 
-    file.write(chunk); 
+  const baseFilename = 'ideviceinfo';
+  domains.forEach(function (domain) {
+    let domainAddl = "";
+    if (domain !== "") {
+      domainAddl = '-' + domain;
+    };
+    
+    const filename = baseFilename + domainAddl + '.xml';
+    const file = fs.createWriteStream(wd + '/artifacts/' + filename);
+
+    // call ideviceinfo binary with domain extension if present
+    let opts = ['--xml'];
+    if (domain !== "") {
+      opts.push('--domain'); 
+      opts.push(domain);
+    };
+    logger.debug('calling ideviceinfo with opts: %s', opts);
+    const ideviceinfo = child_process.spawn('ideviceinfo', opts);
+
+    // on data events, write chunks to file
+    ideviceinfo.stdout.on('data', (chunk) => { 
+      file.write(chunk); 
+    });
+
+    // after Stream ends, close the file, inform user of saved file
+    ideviceinfo.stdout.on('end', () => { 
+      file.end(); 
+      logger.debug('iOS Device info saved, domain: %s', domain);
+      // callback(null, ideviceinfo);
+    });
+
+    // should this event be on exit or on close?
+    // per documentation, not all Streams emit a close event
+    // https://nodejs.org/api/stream.html#stream_event_close
+    ideviceinfo.on('close', function(code) {
+      if (code != 0) {
+        // return callback(new Error('Error: ideviceinfo (domain: ' + domain + ') returned error code ' + code));
+        logger.error('Error: ideviceinfo (domain: %s) returned error code %s', domain, code);
+      }
+    });
   });
-
-  // after Stream ends, close the file, inform user of saved file
-  ideviceinfo.stdout.on('end', () => { 
-    file.end(); 
-    logger.info('iOS Device info saved');
-    callback(null, ideviceinfo);
-  });
-
-  // should this event be on exit or on close?
-  // per documentation, not all Streams emit a close event
-  // https://nodejs.org/api/stream.html#stream_event_close
-  ideviceinfo.on('close', function(code) {
-    if (code != 0) {
-      return callback(new Error('Error: ideviceinfo returned error code ' + code));
-    }
-  });
+  // does this callback immediately?
+  callback(null, "complete device info extraction");
 };
 
 function getInstalledApps(udid, wd, callback) { 
@@ -367,7 +420,7 @@ function getCrashReports(udid, wd, callback) {
 
   idevicecrashreport.on('close', function(code) {
     if (code != 0) {
-      callback(new Error('idevicecrashreport returned error code ' + code));
+      return callback(new Error('idevicecrashreport returned error code ' + code));
     }
   });
 };
