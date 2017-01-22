@@ -766,20 +766,6 @@ function generateReport(dir, callback) {
       });
 
 /*
-      const headerPartialFile = __base + 'html/templates/partials/header.hbs';
-      const headerPartial = handlebars.compile(fs.readFileSync(headerPartialFile, 'utf-8'));
-      handlebars.registerPartial('headerPartial', headerPartial);
-
-      const topnavbarPartialFile = __base + 'html/templates/partials/topnavbar.hbs';
-      const topnavbarPartial = handlebars.compile(fs.readFileSync(topnavbarPartialFile, 'utf-8'));
-      handlebars.registerPartial('topnavbarPartial', topnavbarPartial);
-
-      const footerPartialFile = __base + 'html/templates/partials/footer.hbs';
-      const footerPartial = handlebars.compile(fs.readFileSync(footerPartialFile, 'utf-8'));
-      handlebars.registerPartial('footerPartial', footerPartial);
-*/
-
-/*
       // async method bit me...tried to compile index template before partial
       // was complete. Moved to sync for now but could do async.series too
       fs.readFile(navbarPartialFile, 'utf-8', function(error, partial){
@@ -788,25 +774,21 @@ function generateReport(dir, callback) {
       });
 */
 
-
-
-      const indexTemplateFile = __base + 'html/templates/index.hbs';
-      fs.readFile(indexTemplateFile, 'utf-8', function(error, source){
-        const indexTemplate = handlebars.compile(source);
-        const indexHTML = indexTemplate(data);
-        // copy html to <dir>/reports/index.html
-        const indexHTMLFile = path.join(reportPath,'index.html');
-        fs.writeFile(indexHTMLFile, indexHTML, 'utf8');
+      // compile handlebarsjs templates, need to add diff json data files next
+      const templateList = ["index", "issues", "diffs", "community"];
+      templateList.forEach(function (templateName) {
+        let templateFile = __base + 'html/templates/' + templateName + '.hbs';
+        logger.debug("reading temple file: %s", templateFile);
+        fs.readFile(templateFile, 'utf-8', function(error, source){
+          logger.debug("source is type: %s", Object.prototype.toString.apply(source));
+          const template = handlebars.compile(source);
+          const html = template(data);
+          // copy html to <dir>/reports/index.html
+          const htmlFile = path.join(reportPath, templateName + '.html');
+          fs.writeFile(htmlFile, html, 'utf8');
+        });
       });
 
-      const issuesTemplateFile = __base + 'html/templates/issues.hbs';
-      fs.readFile(issuesTemplateFile, 'utf-8', function(error, source){
-        const issuesTemplate = handlebars.compile(source);
-        const issuesHTML = issuesTemplate(data);
-        // copy html to <dir>/reports/index.html
-        const issuesHTMLFile = path.join(reportPath,'issues.html');
-        fs.writeFile(issuesHTMLFile, issuesHTML, 'utf8');
-      });
 
     callback(null, "report generated");
     };
