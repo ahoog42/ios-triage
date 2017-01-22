@@ -757,6 +757,15 @@ function generateReport(dir, callback) {
 
       logger.debug(JSON.stringify(data));
 
+      // register handlebarsjs partial files
+      const partials = ["header", "topnavbar", "footer"];
+      partials.forEach(function (item) {
+        let partialFile = __base + 'html/templates/partials/' + item + '.hbs';
+        let partial = handlebars.compile(fs.readFileSync(partialFile, 'utf-8'));
+        handlebars.registerPartial(item, partial);
+      });
+
+/*
       const headerPartialFile = __base + 'html/templates/partials/header.hbs';
       const headerPartial = handlebars.compile(fs.readFileSync(headerPartialFile, 'utf-8'));
       handlebars.registerPartial('headerPartial', headerPartial);
@@ -768,6 +777,7 @@ function generateReport(dir, callback) {
       const footerPartialFile = __base + 'html/templates/partials/footer.hbs';
       const footerPartial = handlebars.compile(fs.readFileSync(footerPartialFile, 'utf-8'));
       handlebars.registerPartial('footerPartial', footerPartial);
+*/
 
 /*
       // async method bit me...tried to compile index template before partial
@@ -777,6 +787,8 @@ function generateReport(dir, callback) {
         handlebars.registerPartial('navbarPartial', navbarPartial);
       });
 */
+
+
 
       const indexTemplateFile = __base + 'html/templates/index.hbs';
       fs.readFile(indexTemplateFile, 'utf-8', function(error, source){
