@@ -361,7 +361,7 @@ function copyProvisioningProfiles(udid, wd, callback) {
 
   // ideviceprovision writes any pprofiles to disk vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
-  const wd_pprofiles = wd + '/artifacts/pprofiles/';
+  const wd_pprofiles = path.join(wd, 'artifacts', 'pprofiles');
   if (!fs.existsSync(wd_pprofiles)){
     fs.mkdirSync(wd_pprofiles);
   }
@@ -665,32 +665,41 @@ function processDeviceInfo(dir, callback) {
 function processProvisioningProfiles(dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
-  const ideviceprovisionLog = artifactPath + path.sep + '/pprofiles/ideviceprovision.log';
+  const pprofilePath = path.join(artifactPath, 'pprofiles');
+  const ideviceprovisionLog = path.join(pprofilePath, 'ideviceprovision.log');
+  const pprofiles = {};
 
-  try {
-    const pprofilesLog = fs.readFileSync(ideviceprovisionLog);
-    const lines = pprofilesLog.toString().split('\n');
-    const firstLine = lines[0];
-    // the first line of this file "always" contains the following:
-    // Device has 6 provisioning profiles installed:
-    // let's split on " " and grab the 3rd items. Can you say fragile?!
-    const words = firstLine.split(' ');
-    const pprofilesFound = words[2];
-    logger.debug("pprofiles found: %s", pprofilesFound);
-
-    const pprofiles = {};
-    pprofiles.summary = {
-      "pprofilesFound": pprofilesFound
-    }
-
-    logger.info("pprofiles processed, writing to %s", processedPath + path.sep + 'pprofiles.json');
-    const pprofilesJSON = JSON.stringify(pprofiles);
-    // FIXME should catch errors, maye use callbacks?
-    fs.writeFile(processedPath + path.sep + 'pprofiles.json', pprofilesJSON, 'utf8');
-    callback(null,"processed pprofiles");
-  } catch(err) {
+  // now let's find all files in pprofilePath ending with .mobileprovision
+  // and then call `ideviceprovision --xml dump` on each to get details
+  fs.readdir(pprofilePath, function(err, files) {
+    // we're already in a try/catch so no need to catch and re-throw err
+    if (err) {
       return callback(new Error("Provisioning profiles data not processed: " + err));
-  };
+    } else {
+      let count = 0;
+      async.each(files, function (file, callback) {
+        if (file.endsWith('.mobileprovision')) {
+          logger.info('filename: %s', file);
+          count++;
+        };
+        callback();
+      }, function(err) {
+        if (err) {
+          logger.error(err);
+        } else {
+          logger.debug("pprofiles found: %d", count);
+          pprofiles.summary = {
+            "pprofilesFound": count
+          };
+          logger.info("pprofiles processed, writing to %s", processedPath + path.sep + 'pprofiles.json');
+          const pprofilesJSON = JSON.stringify(pprofiles);
+          // FIXME should catch errors, maye use callbacks?
+          fs.writeFile(path.join(processedPath,'pprofiles.json'), pprofilesJSON, 'utf8');
+          callback(null,"processed pprofiles");
+        }; 
+      });
+    };
+  });
 };
 
 function processSyslog(dir, callback) {
