@@ -527,103 +527,76 @@ function processArtifacts(dir, callback) {
         logger.info(results);
       };
    });
-
   };
 };
 
 function processInstalledAppsXML(dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
-  const installedAppsXML = artifactPath + path.sep + 'installed-apps.xml';
+  const installedAppsXML = path.join(artifactPath, 'installed-apps.xml');
+  const apps = {};
 
-  // try to open the installedApps.xml file, otherwise return error 
-  fs.stat(installedAppsXML, function(err, stat) {
-    if(err) {
-      return callback(new Error("Installed apps not processed: " + err));
-    } else {
-
-  // read and parse plist file
-  // TODO: error check the call to plist.parse
-  const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
-
-  // for further analysis
-  const installedAppsDetailed = obj;
-
-  // setup object to stored parsed app properties into
-  const installedAppsParsed = {};
-  installedAppsParsed.summary = {};
-  installedAppsParsed.apps = [];
-
-  // counters for summary app data
   let totalApps = 0;
   let userApps = 0;
   let systemApps = 0;
   let nonAppleSigner = 0;
 
-  for (let prop in obj) {
-    // every prop in array is properties for an app
-    const app = obj[prop];
-    let appInfo = {}; //object to store individual app properties in
+  async.parallel({
+    processApps: function(callback) {
+      // read and parse plist file
+      // TODO: error check the call to readFileSync and plist.parse
+      const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
 
-    totalApps++;
-    for(let attrib in app) {
-      switch(attrib) {
-        case "CFBundleName":
-          appInfo.name = app[attrib];
-          break;
-        case "CFBundleVersion":
-          appInfo.version = app[attrib];
-          break;
-        case "CFBundleIdentifier":
-          appInfo.bundleIdentifier = app[attrib];
-          break;
-        case "SignerIdentity":
-          appInfo.signerIdentity = app[attrib];
-          if(app[attrib] !== "Apple iPhone OS Application Signing") {
-            nonAppleSigner++;
-          }
-          break;
-        case "ApplicationType":
-          appInfo.applicationType = app[attrib];
-          switch(app[attrib]) {
-            case "User":
-              userApps++;
+      // full app details for inspection and comparision
+      apps.details = obj;
+
+      for (let prop in obj) {
+        // every prop in array is properties for an app
+        const app = obj[prop];
+        let appInfo = {}; //object to store individual app properties in
+
+        totalApps++;
+        for(let attrib in app) {
+          switch(attrib) {
+            case "SignerIdentity":
+              if(app[attrib] !== "Apple iPhone OS Application Signing") {
+                nonAppleSigner++;
+              }
               break;
-            case "System":
-              systemApps++;
+            case "ApplicationType":
+              switch(app[attrib]) {
+                case "User":
+                  userApps++;
+                  break;
+                case "System":
+                  systemApps++;
+                  break;
+                default:
+                  break;
+              };
               break;
             default:
+              // otherwise ignore property for now
               break;
           };
-          break;
-        default:
-          // otherwise ignore property for now
-          break;
+        };
       };
+      callback();
+    }
+  }, function (error, results) {
+    // object for summary app data
+    apps.summary = {
+      "totalApps": totalApps,
+      "userApps": userApps,
+      "systemApps": systemApps,
+      "nonAppleSigner": nonAppleSigner
     };
-    // push current appInfo into installedAppsParsed.apps array
-    installedAppsParsed.apps.push(appInfo);
-    // logger.debug("moving to next app");
-  };
-
-  // object for summary app data
-  installedAppsParsed.summary = {
-    "totalApps": totalApps,
-    "userApps": userApps,
-    "systemApps": systemApps,
-    "nonAppleSigner": nonAppleSigner
-  };
-
-  logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
-  const parsedAppsJSON = JSON.stringify(installedAppsParsed);
-  const detailedAppsJSON = JSON.stringify(installedAppsDetailed);
-  // FIXME should catch errors, maye use callbacks?
-  fs.writeFile(processedPath + path.sep + 'installedApps.json', parsedAppsJSON, 'utf8');
-  fs.writeFile(processedPath + path.sep + 'installedApps-Detailed.json', detailedAppsJSON, 'utf8');
-
-  callback(null, "processed app data"); 
-    };
-  }); 
+    logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
+    const parsedAppsJSON = JSON.stringify(apps);
+    // FIXME should catch errors, maye use callbacks?
+    fs.writeFile(processedPath + path.sep + 'apps.json', parsedAppsJSON, 'utf8');
+    callback(null, "processed app data"); 
+  });
 };
 
 function processDeviceInfo(dir, callback) {
@@ -799,40 +772,40 @@ function processBackup(dir, callback) {
   const backupFile = path.join(backupPath, 'backup_log.txt');
   const backup = {};
 
-    async.parallel({
-      processLog: function(callback) {
-        let backupFileCount = 0;
-        fs.createReadStream(backupFile)
-          // handled the error event before pipe, I guess order matters here
-          .on('error', function() {
-            // not flagging as error, just going to write a blank backup object
-            callback(null, "Backup dir not found, skipping processing");
-          })
-          .pipe(split())
-          .on('data', function(line) {
-            if (line.startsWith('Received ')) {
-              // example line: Received 623 files from device. 
-              // split on ' ' and push the 2nd field to an array
-              logger.debug('found file count in backup log: [%s]',line);
-              backupFileCount = line.split(' ')[1];
-            }
-          })
-          .on('end', function() {
-            backup.summary = {
-              "files": backupFileCount
-            };
-            callback(null, 'backup data processed');
-          });
-        }
-      }, function (error, results) {
-        //write backup object here
-        logger.info(results.processLog);
-        logger.debug("backup processed, writing to %s", path.join(processedPath, 'backup.json'));
-        logger.debug('backup object: %s', JSON.stringify(backup));
-        const backupJSON = JSON.stringify(backup);
-        // FIXME should catch errors, maybe use callbacks?
-        fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8');
-      });
+  async.parallel({
+    processLog: function(callback) {
+      let backupFileCount = 0;
+      fs.createReadStream(backupFile)
+        // handled the error event before pipe, I guess order matters here
+        .on('error', function() {
+          // not flagging as error, just going to write a blank backup object
+          callback(null, "Backup dir not found, skipping processing");
+        })
+        .pipe(split())
+        .on('data', function(line) {
+          if (line.startsWith('Received ')) {
+            // example line: Received 623 files from device. 
+            // split on ' ' and push the 2nd field to an array
+            logger.debug('found file count in backup log: [%s]',line);
+            backupFileCount = line.split(' ')[1];
+          }
+        })
+        .on('end', function() {
+          backup.summary = {
+            "files": backupFileCount
+          };
+          callback(null, 'backup data processed');
+        });
+      }
+    }, function (error, results) {
+      //write backup object here
+      logger.info(results.processLog);
+      logger.debug("backup processed, writing to %s", path.join(processedPath, 'backup.json'));
+      logger.debug('backup object: %s', JSON.stringify(backup));
+      const backupJSON = JSON.stringify(backup);
+      // FIXME should catch errors, maybe use callbacks?
+      fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8');
+    });
 };
 
 
@@ -856,7 +829,7 @@ function generateReport(dir, callback) {
        fs.mkdirSync(reportPath);
       } 
 
-      // copy assets if needed, assuming if css dir exists files were copied
+      // copy assets to report dir if needed, assuming if css dir exists files were copied
       // a user could muck this up if they tinker in those dirs but punting for now
       if(!fs.existsSync(cssPath)) {
         const pkgAssetPath = path.join(__base, 'html', 'bootstrap4');
@@ -865,7 +838,7 @@ function generateReport(dir, callback) {
 
       // read json data files to pass to handlebar template
       const deviceJSONFile = path.join(processedPath, 'deviceInfo.json');
-      const appsJSONFile = path.join(processedPath, 'installedApps.json');
+      const appsJSONFile = path.join(processedPath, 'apps.json');
       const pprofilesJSONFile = path.join(processedPath, 'pprofiles.json');
       const syslogJSONFile = path.join(processedPath, 'syslog.json');
       const crashreportsJSONFile = path.join(processedPath, 'crashreports.json');

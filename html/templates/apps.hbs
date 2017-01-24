@@ -33,13 +33,13 @@
     </tr>
   </thead>
   <tbody>
-{{#each apps.apps}}
+{{#each apps.details}}
     <tr>
 <!--  <th scope="row">1</th> -->
-      <td>{{name}}</td>
-      <td>{{bundleIdentifier}}</td>
-      <td>{{version}}</td>
-      <td>{{applicationType}}</td>
+      <td>{{CFBundleName}}</td>
+      <td>{{CFBundleIdentifier}}</td>
+      <td>{{CFBundleVersion}}</td>
+      <td>{{ApplicationType}}</td>
     </tr>
 {{/each}}
   </tbody>
