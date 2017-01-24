@@ -869,12 +869,14 @@ function generateReport(dir, callback) {
       const pprofilesJSONFile = path.join(processedPath, 'pprofiles.json');
       const syslogJSONFile = path.join(processedPath, 'syslog.json');
       const crashreportsJSONFile = path.join(processedPath, 'crashreports.json');
+      const backupJSONFile = path.join(processedPath, 'backup.json');
 
       const deviceJSON = fs.readFileSync(deviceJSONFile, 'utf8');
       const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
       const pprofilesJSON = fs.readFileSync(pprofilesJSONFile, 'utf8');
       const syslogJSON = fs.readFileSync(syslogJSONFile, 'utf8');
       const crashreportsJSON = fs.readFileSync(crashreportsJSONFile, 'utf8');
+      const backupJSON = fs.readFileSync(backupJSONFile, 'utf8');
 
       const data = {};
       data.cli = pkg.name + ' v' + pkg.version;
@@ -883,6 +885,7 @@ function generateReport(dir, callback) {
       data.pprofiles = JSON.parse(pprofilesJSON);
       data.syslog = JSON.parse(syslogJSON);
       data.crashreports = JSON.parse(crashreportsJSON);
+      data.backup = JSON.parse(backupJSON);
 
       logger.debug(JSON.stringify(data));
 

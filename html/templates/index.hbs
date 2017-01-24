@@ -63,7 +63,13 @@
         <h3 class="card-header">Backup</h3>
         <div class="card-block">
           <h4 class="card-title">Backup Summary</h4>
-            <p class="card-text">Not yet processed</p>
+            {{#if backup.summary.files}}
+              <ul>
+                <li>Backup: {{backup.summary.files}} files</li>
+              </ul>
+            {{else}}
+              <p>Backup artifacts not present</p>
+            {{/if}}
           <a href="#" class="btn btn-primary">Backup Details</a>
         </div>
       </div>
