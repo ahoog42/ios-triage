@@ -797,34 +797,42 @@ function processBackup(dir, callback) {
   const processedPath = path.join(dir, 'processed');
   const backupPath = path.join(artifactPath, 'backup');
   const backupFile = path.join(backupPath, 'backup_log.txt');
+  const backup = {};
 
-  let backupFileCount = 0;
-  fs.createReadStream(backupFile)
-    // handled the error event before pipe, I guess order matters here
-    .on('error', function() {
-      return new Error("Backup dir not found, skipping processing: ");
-    })
-    .pipe(split())
-    .on('data', function(line) {
-      if (line.startsWith('Received ')) {
-        // example line: Received 623 files from device. 
-        // split on ' ' and push the 2nd field to an array
-        logger.debug('found file count in backup log: [%s]',line);
-        backupFileCount = line.split(' ')[1];
-      }
-    })
-    .on('end', function() {
-      const backup = {};
-      backup.summary = {
-        "files": backupFileCount
-      };
-      logger.debug("backup processed, writing to %s", path.join(processedPath, 'backup.json'));
-      logger.debug('backup object: %s', JSON.stringify(backup));
-      const backupJSON = JSON.stringify(backup);
-      // FIXME should catch errors, maybe use callbacks?
-      fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8');
-      callback(null, 'backup data processed');
-    });
+    async.parallel({
+      processLog: function(callback) {
+        let backupFileCount = 0;
+        fs.createReadStream(backupFile)
+          // handled the error event before pipe, I guess order matters here
+          .on('error', function() {
+            // not flagging as error, just going to write a blank backup object
+            callback(null, "Backup dir not found, skipping processing");
+          })
+          .pipe(split())
+          .on('data', function(line) {
+            if (line.startsWith('Received ')) {
+              // example line: Received 623 files from device. 
+              // split on ' ' and push the 2nd field to an array
+              logger.debug('found file count in backup log: [%s]',line);
+              backupFileCount = line.split(' ')[1];
+            }
+          })
+          .on('end', function() {
+            backup.summary = {
+              "files": backupFileCount
+            };
+            callback(null, 'backup data processed');
+          });
+        }
+      }, function (error, results) {
+        //write backup object here
+        logger.info(results.processLog);
+        logger.debug("backup processed, writing to %s", path.join(processedPath, 'backup.json'));
+        logger.debug('backup object: %s', JSON.stringify(backup));
+        const backupJSON = JSON.stringify(backup);
+        // FIXME should catch errors, maybe use callbacks?
+        fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8');
+      });
 };
 
 
