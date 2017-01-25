@@ -1,0 +1,23 @@
+<!-- header partial -->
+{{> header }}
+
+    <!-- Fixed top navbar -->
+    {{> topnavbar details_active=true }}
+
+    <!-- Begin page content -->
+    <div class="container">
+
+{{> detailstabs crashreports_active=true }}
+
+<p>crash report details</p>
+<!--
+<ul>
+  <li>Color: {{device.details.DeviceColor}}</li>
+  <li>Serial #: {{device.details.SerialNumber}}</li>
+  <li>UDID: {{device.details.UniqueDeviceID}}</li>
+</ul>
+-->
+
+<!-- footer partial -->
+{{> footer }}
+

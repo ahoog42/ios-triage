@@ -7,20 +7,7 @@
     <!-- Begin page content -->
     <div class="container">
 
-<ul class="nav nav-tabs">
-  <li class="nav-item">
-    <a class="nav-link active" href="index.html">Overview</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" href="apps.html">Apps</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" href="#">Logs</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" href="#">Artifacts</a>
-  </li>
-</ul>
+    {{> detailstabs overview_active=true }}
 
 <!-- By default, index page will show Details page -->
   <div class="row">
@@ -30,11 +17,11 @@
         <div class="card-block">
           <h4 class="card-title">Device Summary</h4>
             <ul>
-              <li>Device Type: {{device.summary.DeviceClass}}</li>
-              <li>Product Type: {{device.summary.ProductType}}</li>
-              <li>iOS Version: {{device.summary.ProductVersion}}</li>
-              <li>Baseband: {{device.summary.BasebandVersion}}</li>
-              <li>Passcode Protected: {{device.summary.PasswordProtected}}</li>
+              <li>Device Type: {{device.details.DeviceClass}}</li>
+              <li>Product Type: {{device.details.ProductType}}</li>
+              <li>iOS Version: {{device.details.ProductVersion}}</li>
+              <li>Baseband: {{device.details.BasebandVersion}}</li>
+              <li>Passcode Protected: {{device.details.PasswordProtected}}</li>
               <li>Provisioning Profiles: {{pprofiles.summary.pprofilesFound}}</li>
           <a href="#" class="btn btn-primary">Device Details</a>
         </div>

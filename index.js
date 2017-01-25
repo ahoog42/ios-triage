@@ -543,47 +543,52 @@ function processInstalledAppsXML(dir, callback) {
 
   async.parallel({
     processApps: function(callback) {
-      // read and parse plist file
-      // TODO: error check the call to readFileSync and plist.parse
-      const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
+      try {
+        // read and parse plist file
+        const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
 
-      // full app details for inspection and comparision
-      apps.details = obj;
+        // full app details for inspection and comparision
+        apps.details = obj;
 
-      for (let prop in obj) {
-        // every prop in array is properties for an app
-        const app = obj[prop];
-        let appInfo = {}; //object to store individual app properties in
+        for (let prop in obj) {
+          // every prop in array is properties for an app
+          const app = obj[prop];
+          let appInfo = {}; //object to store individual app properties in
 
-        totalApps++;
-        for(let attrib in app) {
-          switch(attrib) {
-            case "SignerIdentity":
-              if(app[attrib] !== "Apple iPhone OS Application Signing") {
-                nonAppleSigner++;
-              }
-              break;
-            case "ApplicationType":
-              switch(app[attrib]) {
-                case "User":
-                  userApps++;
-                  break;
-                case "System":
-                  systemApps++;
-                  break;
-                default:
-                  break;
-              };
-              break;
-            default:
-              // otherwise ignore property for now
-              break;
+          totalApps++;
+          for(let attrib in app) {
+            switch(attrib) {
+              case "SignerIdentity":
+                if(app[attrib] !== "Apple iPhone OS Application Signing") {
+                  nonAppleSigner++;
+                }
+                break;
+              case "ApplicationType":
+                switch(app[attrib]) {
+                  case "User":
+                    userApps++;
+                    break;
+                  case "System":
+                    systemApps++;
+                    break;
+                  default:
+                    break;
+                };
+                break;
+              default:
+                // otherwise ignore property for now
+                break;
+            };
           };
         };
+        callback();
+      } catch (err) {
+        // could not read apps xml or hit plist parse error
+        callback(err);
       };
-      callback();
     }
   }, function (error, results) {
+    if (error) { logger.warn("could not read or parse app data"); }
     // object for summary app data
     apps.summary = {
       "totalApps": totalApps,
@@ -603,44 +608,27 @@ function processDeviceInfo(dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
   const deviceInfoXML = artifactPath + path.sep + 'ideviceinfo.xml';
+  const device = {};
 
-  fs.stat(deviceInfoXML, function(err, stat) {
-    if(err) {
-      return callback(new Error("Installed apps not processed: " + err));
-    } else {
-      // read and parse plist file
-      // TODO: error check the call to plist.parse
-      const obj = plist.parse(fs.readFileSync(deviceInfoXML, 'utf8'));
-
-      // for further analysis
-      const deviceInfoAll = obj;
-
-      // obj for summary data
-      const deviceInfo = {};
-      deviceInfo.summary = {
-        "BasebandVersion": deviceInfoAll.BasebandVersion,
-        "DeviceClass": deviceInfoAll.DeviceClass,
-        "DeviceColor": deviceInfoAll.DeviceColor,
-        "DeviceName": deviceInfoAll.DeviceName,
-        "ModelNumber": deviceInfoAll.ModelNumber,
-        "PasswordProtected": deviceInfoAll.PasswordProtected,
-        "PhoneNumber": deviceInfoAll.PhoneNumber,
-        "ProductType": deviceInfoAll.ProductType,
-        "ProductVersion": deviceInfoAll.ProductVersion,
-        "SerialNumber": deviceInfoAll.SerialNumber,
-        "TimeZone": deviceInfoAll.TimeZone,
-        "TrustedHostAttached": deviceInfoAll.TrustedHostAttached,
-        "UniqueDeviceID": deviceInfoAll.UniqueDeviceID
+  async.parallel({
+    processDevice: function(callback) {
+      try {
+        // read and parse plist file
+        const obj = plist.parse(fs.readFileSync(deviceInfoXML, 'utf8'));
+        device.details = obj;
+        callback();
+      } catch (err) {
+        // could not read device xml or hit plist parse error
+        callback(err);
       };
-
+    }
+  }, function (error, results) {
+      if (error) { logger.warn("could not read or parse device data"); }
       logger.debug("device info xml processed, writing to %s", path.join(processedPath, 'deviceInfo.json'));
-      const deviceInfoJSON = JSON.stringify(deviceInfo);
-      const allDeviceInfoJSON = JSON.stringify(deviceInfoAll);
+      const deviceJSON = JSON.stringify(device);
       // FIXME should catch errors, maye use callbacks?
-      fs.writeFile(processedPath + path.sep + 'deviceInfo.json', deviceInfoJSON, 'utf8');
-      fs.writeFile(processedPath + path.sep + 'deviceInfo-All.json', allDeviceInfoJSON, 'utf8');
-    };
-    callback(null,"processed device info");
+      fs.writeFile(path.join(processedPath, 'device.json'), deviceJSON, 'utf8');
+      callback(null,"processed device info");
   });
 };
   
@@ -837,15 +825,15 @@ function generateReport(dir, callback) {
       };
 
       // read json data files to pass to handlebar template
-      const deviceJSONFile = path.join(processedPath, 'deviceInfo.json');
-      const appsJSONFile = path.join(processedPath, 'apps.json');
+      const deviceFile = path.join(processedPath, 'device.json');
+      const appsFile = path.join(processedPath, 'apps.json');
       const pprofilesJSONFile = path.join(processedPath, 'pprofiles.json');
       const syslogJSONFile = path.join(processedPath, 'syslog.json');
       const crashreportsJSONFile = path.join(processedPath, 'crashreports.json');
       const backupJSONFile = path.join(processedPath, 'backup.json');
 
-      const deviceJSON = fs.readFileSync(deviceJSONFile, 'utf8');
-      const appsJSON = fs.readFileSync(appsJSONFile, 'utf8');
+      const deviceJSON = fs.readFileSync(deviceFile, 'utf8');
+      const appsJSON = fs.readFileSync(appsFile, 'utf8');
       const pprofilesJSON = fs.readFileSync(pprofilesJSONFile, 'utf8');
       const syslogJSON = fs.readFileSync(syslogJSONFile, 'utf8');
       const crashreportsJSON = fs.readFileSync(crashreportsJSONFile, 'utf8');
@@ -863,7 +851,7 @@ function generateReport(dir, callback) {
       logger.debug(JSON.stringify(data));
 
       // register handlebarsjs partial files
-      const partials = ["header", "topnavbar", "footer"];
+      const partials = ["header", "topnavbar", "footer", "detailstabs"];
       partials.forEach(function (item) {
         let partialFile = __base + 'html/templates/partials/' + item + '.hbs';
         let partial = handlebars.compile(fs.readFileSync(partialFile, 'utf-8'));
@@ -880,7 +868,7 @@ function generateReport(dir, callback) {
 */
 
       // compile handlebarsjs templates, need to add diff json data files next
-      const templateList = ["index", "issues", "diffs", "community", "apps"];
+      const templateList = ["index", "issues", "diffs", "community", "apps", "device", "crashreports", "pprofiles", "artifacts"];
       templateList.forEach(function (templateName) {
         let templateFile = __base + 'html/templates/' + templateName + '.hbs';
         logger.debug("reading temple file: %s", templateFile);
