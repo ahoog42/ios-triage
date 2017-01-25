@@ -9,15 +9,69 @@
 
 {{> detailstabs pprofiles_active=true }}
 
-<p>list of provisioning profiles</p>
+<p>list of {{pprofiles.summary.pprofilesFound}} provisioning profiles</p>
 
-<!--
-<ul>
-  <li>Color: {{device.details.DeviceColor}}</li>
-  <li>Serial #: {{device.details.SerialNumber}}</li>
-  <li>UDID: {{device.details.UniqueDeviceID}}</li>
-</ul>
--->
+{{#each pprofiles.details}}
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th colspan="2">Provisioning Profile #{{@index}}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AppID Name</td>
+      <td>{{AppIDName}}</td>
+    </tr>
+    <tr>
+      <td>Creation Date</td>
+      <td>{{CreationDate}}</td>
+    </tr>
+    <tr>
+      <td>Entitlements</td>
+      <td>
+        <ul>
+          {{#each Entitlements}}
+            <li>{{@key}}: {{this}}</li>
+          {{/each}}
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>ExpirationDate</td>
+      <td>{{ExpirationDate}}</td>
+    </tr>
+    <tr>
+      <td>Name</td>
+      <td>{{Name}}</td>
+    </tr>
+    <tr>
+      <td>Provisioned Devices</td>
+      <td>{{ProvisionedDevices}}</td>
+    </tr>
+    <tr>
+      <td>TeamIdentifier</td>
+      <td>{{TeamIdentifier}}</td>
+    </tr>
+    <tr>
+      <td>TeamName</td>
+      <td>{{TeamName}}</td>
+    </tr>
+    <tr>
+      <td>TimeToLive</td>
+      <td>{{TimeToLive}}</td>
+    </tr>
+    <tr>
+      <td>UUID</td>
+      <td>{{UUID}}</td>
+    </tr>
+    <tr>
+      <td>Version</td>
+      <td>{{Version}}</td>
+    </tr>
+  </tbody>
+</table>
+{{/each}}
 
 <!-- footer partial -->
 {{> footer }}

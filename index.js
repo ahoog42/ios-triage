@@ -655,15 +655,6 @@ function processProvisioningProfiles(dir, callback) {
           // now let's parse the pprofile xml file into a json object
           logger.debug('parsing %s', path.join(pprofilePath,file));
           let obj = plist.parse(fs.readFileSync(path.join(pprofilePath,file), 'utf8'));
-/* 
-          provisioning(path.join(pprofilePath,file), function(error, data) {
-            if (error) {
-              logger.error('could not process %s with error: [%s]', path.join(pprofilePath,file), error);
-            } else {
-              logger.info(data);
-            };
-          });
-*/
           pprofiles.details.push(obj);
         };
         callback();
