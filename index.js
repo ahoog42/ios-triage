@@ -607,7 +607,7 @@ function processInstalledAppsXML(dir, callback) {
 function processDeviceInfo(dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
-  const deviceInfoXML = artifactPath + path.sep + 'ideviceinfo.xml';
+  const deviceInfoXML = path.join(artifactPath, 'ideviceinfo.xml');
   const device = {};
 
   async.parallel({
@@ -621,14 +621,34 @@ function processDeviceInfo(dir, callback) {
         // could not read device xml or hit plist parse error
         callback(err);
       };
-    }
+    },
+    processDeviceDomains: function(callback) {
+      fs.readdir(artifactPath, function(err, files) {
+        if (err) {
+          logger.error(err)
+        } else {
+          async.each(files, function (file, callback) {
+            if (file.startsWith('ideviceinfo-')) {
+              logger.debug('process idevice domain file: %s', file);
+            };
+            callback(); // cb for async.each
+          }, function(err) {
+            if (err) {
+              logger.err(err);
+            } else {
+              callback(null,"processed idevice domain files");
+            };
+          });
+      };
+    });
   }, function (error, results) {
-      if (error) { logger.warn("could not read or parse device data"); }
+      if (error) { logger.warn("could not read or parse device data"); };
       logger.debug("device info xml processed, writing to %s", path.join(processedPath, 'deviceInfo.json'));
       const deviceJSON = JSON.stringify(device);
       // FIXME should catch errors, maye use callbacks?
       fs.writeFile(path.join(processedPath, 'device.json'), deviceJSON, 'utf8');
       callback(null,"processed device info");
+    }
   });
 };
   
@@ -643,7 +663,6 @@ function processProvisioningProfiles(dir, callback) {
   // now let's find all files in pprofilePath ending with .mobileprovision
   // and then call `ideviceprovision --xml dump` on each to get details
   fs.readdir(pprofilePath, function(err, files) {
-    // we're already in a try/catch so no need to catch and re-throw err
     if (err) {
       return callback(new Error("Provisioning profiles data not processed: " + err));
     } else {
