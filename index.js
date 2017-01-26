@@ -631,9 +631,11 @@ function processDeviceInfo(dir, callback) {
             if (file.startsWith('ideviceinfo-')) {
               logger.debug('process idevice domain file: %s', file);
               try {
+                let domainName = file.slice(12, (file.length - 4)); // trim ideviceonfo- and .xml
                 logger.debug("trying to read domain file %s", path.join(artifactPath, file));
                 let domainInfo = plist.parse(fs.readFileSync(path.join(artifactPath, file), 'utf8'));
-                device.details.file = domainInfo;
+                logger.debug("for domain %s , data: %s", domainName , JSON.stringify(domainInfo));
+                device.details.domainName = domainInfo;
               } catch (err) {
                 logger.error(err);
               };
