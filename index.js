@@ -630,6 +630,13 @@ function processDeviceInfo(dir, callback) {
           async.each(files, function (file, callback) {
             if (file.startsWith('ideviceinfo-')) {
               logger.debug('process idevice domain file: %s', file);
+              try {
+                logger.debug("trying to read domain file %s", path.join(artifactPath, file));
+                let domainInfo = plist.parse(fs.readFileSync(path.join(artifactPath, file), 'utf8'));
+                device.details.file = domainInfo;
+              } catch (err) {
+                logger.error(err);
+              };
             };
             callback(); // cb for async.each
           }, function(err) {
