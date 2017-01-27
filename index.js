@@ -492,6 +492,7 @@ function processArtifacts(dir, callback) {
       };
    });
 
+/*
     // provisioning profiles
     processProvisioningProfiles(dir, function(err, results) {
       if (err) {
@@ -500,6 +501,7 @@ function processArtifacts(dir, callback) {
         logger.info(results);
       };
    });
+*/
 
     // process syslog 
     processSyslog(dir, function(err, results) {
@@ -609,55 +611,56 @@ function processDeviceInfo(dir, callback) {
   const processedPath = path.join(dir, 'processed');
   const deviceInfoXML = path.join(artifactPath, 'ideviceinfo.xml');
   const device = {};
+  device.details = {};
 
   async.parallel({
     processDevice: function(callback) {
       try {
         // read and parse plist file
         const obj = plist.parse(fs.readFileSync(deviceInfoXML, 'utf8'));
-        device.details = obj;
-        callback();
+        device.details.standard = obj;
+        callback(null, "Processed main ideviceinfo plist");
       } catch (err) {
         // could not read device xml or hit plist parse error
-        callback(err);
+        callback(null, "Hit snag processing main ideviceinfo plist");
       };
     },
-    processDeviceDomains: function(callback) {
+    processDomains: function(callback) {
       fs.readdir(artifactPath, function(err, files) {
         if (err) {
           logger.error(err)
+          callback(null, "Hit snags processing some/all ideviceinfo domain files");
         } else {
           async.each(files, function (file, callback) {
             if (file.startsWith('ideviceinfo-')) {
-              logger.debug('process idevice domain file: %s', file);
               try {
-                let domainName = file.slice(12, (file.length - 4)); // trim ideviceonfo- and .xml
-                logger.debug("trying to read domain file %s", path.join(artifactPath, file));
+                let domainName = file.slice(12, (file.length - 4)); // trim ideviceinfo- and .xml
                 let domainInfo = plist.parse(fs.readFileSync(path.join(artifactPath, file), 'utf8'));
                 logger.debug("for domain %s , data: %s", domainName , JSON.stringify(domainInfo));
-                device.details.domainName = domainInfo;
+                device.details[domainName] = domainInfo;
+                callback(null, "successful cb from async.each on domain " + file); // cb for async.each
               } catch (err) {
                 logger.error(err);
-              };
-            };
-            callback(); // cb for async.each
-          }, function(err) {
-            if (err) {
-              logger.err(err);
+                callback(null, "error in cb from async.each on domain " + file + ". Error: " + err);
+              }
             } else {
-              callback(null,"processed idevice domain files");
-            };
+              callback(null, "not a domain file so skip");
+            }
+          }, function(err, results) {
+            if (err) { logger.err(err); };
+            logger.debug("results from ideviceinfo async.each cbs: %s", results);
+            callback(null, "processed ideviceinfo domain files");
           });
-      };
-    });
+        };
+      });
+    } 
   }, function (error, results) {
-      if (error) { logger.warn("could not read or parse device data"); };
+      if (error) { logger.error(error); };
       logger.debug("device info xml processed, writing to %s", path.join(processedPath, 'deviceInfo.json'));
       const deviceJSON = JSON.stringify(device);
       // FIXME should catch errors, maye use callbacks?
       fs.writeFile(path.join(processedPath, 'device.json'), deviceJSON, 'utf8');
-      callback(null,"processed device info");
-    }
+      callback(null,"processed device info and domains");
   });
 };
   
