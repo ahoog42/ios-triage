@@ -17,11 +17,11 @@
         <div class="card-block">
           <h4 class="card-title">Device Summary</h4>
             <ul>
-              <li>Device Type: {{device.details.DeviceClass}}</li>
-              <li>Product Type: {{device.details.ProductType}}</li>
-              <li>iOS Version: {{device.details.ProductVersion}}</li>
-              <li>Baseband: {{device.details.BasebandVersion}}</li>
-              <li>Passcode Protected: {{device.details.PasswordProtected}}</li>
+              <li>Device Type: {{device.details.standard.DeviceClass}}</li>
+              <li>Product Type: {{device.details.standard.ProductType}}</li>
+              <li>iOS Version: {{device.details.standard.ProductVersion}}</li>
+              <li>Baseband: {{device.details.standard.BasebandVersion}}</li>
+              <li>Passcode Protected: {{device.details.standard.PasswordProtected}}</li>
               <li>Provisioning Profiles: {{pprofiles.summary.pprofilesFound}}</li>
           <a href="#" class="btn btn-primary">Device Details</a>
         </div>

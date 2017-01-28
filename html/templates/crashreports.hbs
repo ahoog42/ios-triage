@@ -9,14 +9,29 @@
 
 {{> detailstabs crashreports_active=true }}
 
-<p>crash report details</p>
-<!--
-<ul>
-  <li>Color: {{device.details.DeviceColor}}</li>
-  <li>Serial #: {{device.details.SerialNumber}}</li>
-  <li>UDID: {{device.details.UniqueDeviceID}}</li>
-</ul>
--->
+<p>Crash reports downloaded: {{crashreports.summary.reports}}</p>
+<p> Jump to report: 
+{{#each crashreports.summary.filenames}}
+  <a href="#crashreport{{@index}}">{{@index}}</a> |
+{{/each}}
+
+<p>Crash report details</p>
+  
+{{#each crashreports.summary.filenames}}
+
+<table id="crashreport{{@index}}" class="table table-striped table-bordered">
+  <thead>
+    <tr><th>{{this}}</th></tr>
+  </thead>
+  <tbody>
+      <tr><td>
+Todo: Show up to 5 lines<br \>
+Of the log file for quicker analysis <br \>
+      </td></tr>
+  </tbody>
+</table>
+<br \>
+{{/each}}
 
 <!-- footer partial -->
 {{> footer }}

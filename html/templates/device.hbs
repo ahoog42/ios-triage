@@ -9,12 +9,25 @@
 
 {{> detailstabs device_active=true }}
 
-<ul>
-  <li>Color: {{device.details.DeviceColor}}</li>
-  <li>Serial #: {{device.details.SerialNumber}}</li>
-  <li>UDID: {{device.details.UniqueDeviceID}}</li>
-</ul>
+{{#each device.details}}
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th colspan="2">{{@key}}</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{#each this}}
+    <tr>
+      <td>{{@key}}</td>
+      <td>{{this}}</td>
+    </tr>
+  {{/each}}
+  </tbody>
+</table>
+{{/each}}
 
+<!-- <li>{{@key}}: {{this}}</li> -->
 
 <!-- footer partial -->
 {{> footer }}

@@ -492,7 +492,6 @@ function processArtifacts(dir, callback) {
       };
    });
 
-/*
     // provisioning profiles
     processProvisioningProfiles(dir, function(err, results) {
       if (err) {
@@ -501,7 +500,6 @@ function processArtifacts(dir, callback) {
         logger.info(results);
       };
    });
-*/
 
     // process syslog 
     processSyslog(dir, function(err, results) {
@@ -745,7 +743,7 @@ function processCrashReports(dir, callback) {
 
 
   try {
-    let count = 1;
+    let count = 0;
     const filenames = [];
     fs.createReadStream(crashreportLog)
       .pipe(split())
@@ -878,6 +876,11 @@ function generateReport(dir, callback) {
         let partialFile = __base + 'html/templates/partials/' + item + '.hbs';
         let partial = handlebars.compile(fs.readFileSync(partialFile, 'utf-8'));
         handlebars.registerPartial(item, partial);
+      });
+
+      // register helpers
+      handlebars.registerHelper('toJSON', function(object){
+          return new handlebars.SafeString(JSON.stringify(object));
       });
 
 /*
