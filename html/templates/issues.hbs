@@ -7,7 +7,39 @@
     <!-- Begin page content -->
     <div class="container">
 
-    <p>This is where we'll highlight issues</p>
+<h2>Potential Issues</h2>
+
+<p>Issues Found: {{issues.summary.count}}</p>
+<p> Jump to issues:
+{{#each issues.details}}
+  <a href="#issue{{@index}}">{{@index}}</a> |
+{{/each}}
+
+<p>Issue details</p>
+
+{{#each issues.details}}
+
+<table id="issue{{@index}}" class="table table-striped table-bordered">
+  <thead>
+    <tr><th colspan="2">{{this.title}}</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Level</td>
+      <td>{{this.level}}</td>
+    </tr>
+    <tr>
+      <td>Description</td>
+      <td>{{this.description}}</td>
+    </tr>
+    <tr>
+      <td>Remediation</td>
+      <td>{{this.remediation}}</td>
+    </tr>
+  </tbody>
+</table>
+<br \>
+{{/each}}
 
 <!-- footer partial -->
 {{> footer }}

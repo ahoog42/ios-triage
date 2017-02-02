@@ -889,6 +889,7 @@ function readProcessedJSON(dir) {
   const syslogJSONFile = path.join(processedPath, 'syslog.json');
   const crashreportsJSONFile = path.join(processedPath, 'crashreports.json');
   const backupJSONFile = path.join(processedPath, 'backup.json');
+  const issuesJSONFile = path.join(processedPath, 'issues.json');
 
   const data = {};
   
@@ -899,6 +900,7 @@ function readProcessedJSON(dir) {
     const syslogJSON = fs.readFileSync(syslogJSONFile, 'utf8');
     const crashreportsJSON = fs.readFileSync(crashreportsJSONFile, 'utf8');
     const backupJSON = fs.readFileSync(backupJSONFile, 'utf8');
+    const issuesJSON = fs.readFileSync(issuesJSONFile, 'utf8');
 
     data.cli = pkg.name + ' v' + pkg.version;
     data.device = JSON.parse(deviceJSON);
@@ -907,6 +909,7 @@ function readProcessedJSON(dir) {
     data.syslog = JSON.parse(syslogJSON);
     data.crashreports = JSON.parse(crashreportsJSON);
     data.backup = JSON.parse(backupJSON);
+    data.issues = JSON.parse(issuesJSON);
     return data;
   } catch (err) {
     logger.error(err);
@@ -915,13 +918,13 @@ function readProcessedJSON(dir) {
 }
 
 function findIssues(dir, callback) {
+  const processedPath = path.join(dir, 'processed');
   const data = readProcessedJSON(dir);
   const issues = {};
   issues.summary = {};
   issues.details = [];
   let issueCount = 0;
 
-  logger.info("data.device.details.standard.PasswordProtected: %s", data.device.details.standard.PasswordProtected);
   if (data.device.details.standard.PasswordProtected) {
     // so that I have some issues, I'm flipped the logic here right now! should be if !
     issueCount++;
@@ -934,11 +937,18 @@ function findIssues(dir, callback) {
   }
 
   issues.summary.count = issueCount;
-  // logger.info("data in findIssues: %s", JSON.stringify(data));
-  logger.info("findIssues complete, %s", JSON.stringify(issues));
-  callback(null, "find issues completed");
+  logger.debug("findIssues complete, writing to %s", path.join(processedPath, 'issies.json'));
+  logger.debug('issues object: %s', JSON.stringify(issues));
+  const issuesJSON = JSON.stringify(issues);
+  fs.writeFile(path.join(processedPath, 'issues.json'), issuesJSON, 'utf8', function (err) {
+    if (err) {
+      callback(null, "error writing issues.json to disk");
+    } else {
+      callback(null, "wrote issues.json to disk");
+    }
+  });
 
-}
+};
 
 function generateReport(dir, callback) {
 
