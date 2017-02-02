@@ -48,6 +48,7 @@ program
 async.series({
     processArtifacts: function(callback) {
       // process device info
+      logger.info("executing processArtifacts now");
       processArtifacts(dir, function(err, results) {
         if (err) {
           logger.warn(err);
@@ -58,6 +59,7 @@ async.series({
       });
     },
     findIssues: function(callback) {
+      logger.info("executing findIssues now");
       findIssues(dir, function(err, results) {
         if (err) {
           logger.warn(err);
@@ -821,34 +823,26 @@ function processBackup(dir, callback) {
   const backupFile = path.join(backupPath, 'backup_log.txt');
   const backup = {};
 
-  async.parallel({
-    processLog: function(callback) {
-      let backupFileCount = 0;
-      fs.createReadStream(backupFile)
-        // handled the error event before pipe, I guess order matters here
-        .on('error', function() {
-          // not flagging as error, just going to write a blank backup object
-          callback(null, "Backup dir not found, skipping processing");
-        })
-        .pipe(split())
-        .on('data', function(line) {
-          if (line.startsWith('Received ')) {
-            // example line: Received 623 files from device. 
-            // split on ' ' and push the 2nd field to an array
-            logger.debug('found file count in backup log: [%s]',line);
-            backupFileCount = line.split(' ')[1];
-          }
-        })
-        .on('end', function() {
-          backup.summary = {
-            "files": backupFileCount
-          };
-          callback(null, 'backup log line count complete');
-        });
+  let backupFileCount = 0;
+  fs.createReadStream(backupFile)
+    // handled the error event before pipe, I guess order matters here
+    .on('error', function() {
+      // not flagging as error, just going to write a blank backup object
+      callback(null, "Backup dir not found, skipping processing");
+    })
+    .pipe(split())
+    .on('data', function(line) {
+      if (line.startsWith('Received ')) {
+        // example line: Received 623 files from device. 
+        // split on ' ' and push the 2nd field to an array
+        logger.debug('found file count in backup log: [%s]',line);
+        backupFileCount = line.split(' ')[1];
       }
-    }, function (error, results) {
-      //write backup object here
-      logger.info(results.processLog);
+    })
+    .on('end', function() {
+      backup.summary = {
+        "files": backupFileCount
+      };
       logger.debug("backup processed, writing to %s", path.join(processedPath, 'backup.json'));
       logger.debug('backup object: %s', JSON.stringify(backup));
       const backupJSON = JSON.stringify(backup);
