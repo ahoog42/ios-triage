@@ -602,7 +602,7 @@ function processInstalledAppsXML(dir, callback) {
             };
           };
         };
-        callback();
+        callback(null, "finished processing app plist");
       } catch (err) {
         // could not read apps xml or hit plist parse error
         callback(err);
@@ -619,9 +619,13 @@ function processInstalledAppsXML(dir, callback) {
     };
     logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
     const parsedAppsJSON = JSON.stringify(apps);
-    // FIXME should catch errors, maye use callbacks?
-    fs.writeFile(processedPath + path.sep + 'apps.json', parsedAppsJSON, 'utf8');
-    callback(null, "processed app data"); 
+    fs.writeFile(processedPath + path.sep + 'apps.json', parsedAppsJSON, 'utf8', function (err) {
+      if (err) {
+        callback(null, "error writing parsed app data to disk");
+      } else {
+        callback(null, "app data written to disk");
+      }
+    }); 
   });
 };
 
@@ -677,9 +681,13 @@ function processDeviceInfo(dir, callback) {
       if (error) { logger.error(error); };
       logger.debug("device info xml processed, writing to %s", path.join(processedPath, 'deviceInfo.json'));
       const deviceJSON = JSON.stringify(device);
-      // FIXME should catch errors, maye use callbacks?
-      fs.writeFile(path.join(processedPath, 'device.json'), deviceJSON, 'utf8');
-      callback(null,"processed device info and domains");
+      fs.writeFile(path.join(processedPath, 'device.json'), deviceJSON, 'utf8', function (err) {
+      if (err) {
+        callback(null, "error writing parsed device and domain data to disk");
+      } else {
+        callback(null, "wrote device info and domains to disk");
+      }
+    });
   });
 };
   
@@ -718,9 +726,13 @@ function processProvisioningProfiles(dir, callback) {
           };
           logger.debug("pprofiles processed, writing to %s", path.join(processedPath, 'pprofiles.json'));
           const pprofilesJSON = JSON.stringify(pprofiles);
-          // FIXME should catch errors, maye use callbacks?
-          fs.writeFile(path.join(processedPath,'pprofiles.json'), pprofilesJSON, 'utf8');
-          callback(null,"processed pprofiles");
+          fs.writeFile(path.join(processedPath,'pprofiles.json'), pprofilesJSON, 'utf8', function (err) {
+            if (err) {
+              callback(null, "error writing pprofile data to disk");
+            } else {
+              callback(null, "wrote pprofile data to disk");
+            }
+          });
         }; 
       });
     };
@@ -747,9 +759,13 @@ function processSyslog(dir, callback) {
         logger.debug("syslog processed, writing to %s", path.join(processedPath, 'syslog.json'));
         logger.debug('syslog object: %s', JSON.stringify(syslog));
         const syslogJSON = JSON.stringify(syslog);
-        // FIXME should catch errors, maybe use callbacks?
-        fs.writeFile(path.join(processedPath, 'syslog.json'), syslogJSON, 'utf8');
-        callback(null, 'syslog data processed');
+        fs.writeFile(path.join(processedPath, 'syslog.json'), syslogJSON, 'utf8', function (err) {
+          if (err) {
+            callback(null, "error writing syslog data to disk");
+          } else {
+            callback(null, "wrote syslog data to disk");
+          }
+        });
       });
   } catch(err) {
       return new Error("Syslog data not processed: " + err);
@@ -785,9 +801,13 @@ function processCrashReports(dir, callback) {
         logger.debug("crash report data processed, writing to %s", path.join(processedPath, 'crashreports.json'));
         logger.debug('crashreports object: %s', JSON.stringify(crashreports));
         const crashreportsJSON = JSON.stringify(crashreports);
-        // FIXME should catch errors, maybe use callbacks?
-        fs.writeFile(path.join(processedPath, 'crashreports.json'), crashreportsJSON, 'utf8');
-        callback(null, 'crash report data processed');
+        fs.writeFile(path.join(processedPath, 'crashreports.json'), crashreportsJSON, 'utf8', function (err) {
+          if (err) {
+            callback(null, "error writing crash report data to disk");
+          } else {
+            callback(null, "wrote crash report data to disk");
+          }
+        });
       });
   } catch(err) {
       return new Error("Crash report data not processed: " + err);
@@ -823,7 +843,7 @@ function processBackup(dir, callback) {
           backup.summary = {
             "files": backupFileCount
           };
-          callback(null, 'backup data processed');
+          callback(null, 'backup log line count complete');
         });
       }
     }, function (error, results) {
@@ -832,8 +852,13 @@ function processBackup(dir, callback) {
       logger.debug("backup processed, writing to %s", path.join(processedPath, 'backup.json'));
       logger.debug('backup object: %s', JSON.stringify(backup));
       const backupJSON = JSON.stringify(backup);
-      // FIXME should catch errors, maybe use callbacks?
-      fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8');
+      fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8', function (err) {
+        if (err) {
+          callback(null, "error writing parsed backup data to disk");
+        } else {
+          callback(null, "wrote parsed backup data to disk");
+        }
+      });
     });
 };
 
