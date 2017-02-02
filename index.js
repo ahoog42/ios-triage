@@ -51,7 +51,7 @@ async.series({
       logger.info("executing processArtifacts now");
       processArtifacts(dir, function(err, results) {
         if (err) {
-          logger.warn(err);
+          logger.warn("error in processArtifacts: %s", err);
         } else {
           logger.info(results);
         };
@@ -497,6 +497,8 @@ function processArtifacts(dir, callback) {
       logger.warn('Processed path already exists, overwriting data in %s', path.resolve(processedPath));
     };
 
+async.parallel({
+  artifacts: function(callback) {
     // device info
     processDeviceInfo(dir, function(err, results) {
       if (err) {
@@ -504,8 +506,10 @@ function processArtifacts(dir, callback) {
       } else {
         logger.info(results);
       };
+      callback();
     });
-
+  },
+  apps: function(callback) {
     // installed apps
     processInstalledAppsXML(dir, function(err, results) {
       if (err) {
@@ -513,8 +517,10 @@ function processArtifacts(dir, callback) {
       } else {
         logger.info(results);
       };
+      callback();
    });
-
+  },
+  pprofiles: function(callback) {
     // provisioning profiles
     processProvisioningProfiles(dir, function(err, results) {
       if (err) {
@@ -522,8 +528,10 @@ function processArtifacts(dir, callback) {
       } else {
         logger.info(results);
       };
+      callback();
    });
-
+  },
+  syslog: function(callback) {
     // process syslog 
     processSyslog(dir, function(err, results) {
       if (err) {
@@ -531,8 +539,10 @@ function processArtifacts(dir, callback) {
       } else {
         logger.info(results);
       };
+      callback();
    });
-
+  },
+  crashreport: function(callback) {
     // process crash reports 
     processCrashReports(dir, function(err, results) {
       if (err) {
@@ -540,8 +550,10 @@ function processArtifacts(dir, callback) {
       } else {
         logger.info(results);
       };
+      callback();
    });
-
+  },
+  backup: function(callback) {
     // process backup  
     processBackup(dir, function(err, results) {
       if (err) {
@@ -549,8 +561,19 @@ function processArtifacts(dir, callback) {
       } else {
         logger.info(results);
       };
+      callback();
    });
+  }
+}, function(err, results) {
+  if (err) {
+    logger.warn("in processArtifact async.parallel call final function: %s", err);
+  } else {
+    logger.info("in processArtifact async.parallel call final function: %s", results);
   };
+  callback("null", "completed processArtifact async.parallel execution");
+});
+
+  }; // else
 };
 
 function processInstalledAppsXML(dir, callback) {
@@ -898,10 +921,10 @@ function findIssues(dir, callback) {
   issues.details = [];
   let issueCount = 0;
 
-  
-/*
-  if (data.device.details.PasswordProtected === 'true') {
-    count++;
+  logger.info("data.device.details.standard.PasswordProtected: %s", data.device.details.standard.PasswordProtected);
+  if (data.device.details.standard.PasswordProtected) {
+    // so that I have some issues, I'm flipped the logic here right now! should be if !
+    issueCount++;
     let issueDetails = {};
     issueDetails.title = 'Device not password protected';
     issueDetails.level = 'medium';
@@ -911,9 +934,8 @@ function findIssues(dir, callback) {
   }
 
   issues.summary.count = issueCount;
-*/
-  logger.info("data in findIssues: %s", JSON.stringify(data));
-  logger.debug("findIssues complete, %s", JSON.stringify(issues));
+  // logger.info("data in findIssues: %s", JSON.stringify(data));
+  logger.info("findIssues complete, %s", JSON.stringify(issues));
   callback(null, "find issues completed");
 
 }
