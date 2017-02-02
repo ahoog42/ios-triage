@@ -44,13 +44,34 @@ program
   .description('Process extracted artifacts in <dir>')
   .action(function(dir) {
     if (program.debug) { logger.transports.console.level = 'debug'; };
-    processArtifacts(dir, function(err, runStatus) {
-      if (err) { 
-        logger.error(err); 
-      } else {
-        logger.info(runStatus);
-      };
+
+async.series({
+    processArtifacts: function(callback) {
+      // process device info
+      processArtifacts(dir, function(err, results) {
+        if (err) {
+          logger.warn(err);
+        } else {
+          logger.info(results);
+        };
+        callback(null, "done procesing all artifacts");
+      });
+    },
+    findIssues: function(callback) {
+      findIssues(dir, function(err, results) {
+        if (err) {
+          logger.warn(err);
+        } else {
+          logger.info(results);
+        };
+        callback(null, "done finding issues");
+      });
+    }
+}, function(err, results) {
+      if (err) { logger.warn(err); };
+      logger.info("done processing artifacts and finding issues");
     });
+
   });
 
 program
@@ -816,6 +837,67 @@ function processBackup(dir, callback) {
     });
 };
 
+function readProcessedJSON(dir) {
+  const processedPath = path.join(dir, 'processed');
+
+  // read json data files to pass to handlebar template
+  const deviceFile = path.join(processedPath, 'device.json');
+  const appsFile = path.join(processedPath, 'apps.json');
+  const pprofilesJSONFile = path.join(processedPath, 'pprofiles.json');
+  const syslogJSONFile = path.join(processedPath, 'syslog.json');
+  const crashreportsJSONFile = path.join(processedPath, 'crashreports.json');
+  const backupJSONFile = path.join(processedPath, 'backup.json');
+
+  const data = {};
+  
+  try {
+    const deviceJSON = fs.readFileSync(deviceFile, 'utf8');
+    const appsJSON = fs.readFileSync(appsFile, 'utf8');
+    const pprofilesJSON = fs.readFileSync(pprofilesJSONFile, 'utf8');
+    const syslogJSON = fs.readFileSync(syslogJSONFile, 'utf8');
+    const crashreportsJSON = fs.readFileSync(crashreportsJSONFile, 'utf8');
+    const backupJSON = fs.readFileSync(backupJSONFile, 'utf8');
+
+    data.cli = pkg.name + ' v' + pkg.version;
+    data.device = JSON.parse(deviceJSON);
+    data.apps = JSON.parse(appsJSON);
+    data.pprofiles = JSON.parse(pprofilesJSON);
+    data.syslog = JSON.parse(syslogJSON);
+    data.crashreports = JSON.parse(crashreportsJSON);
+    data.backup = JSON.parse(backupJSON);
+    return data;
+  } catch (err) {
+    logger.error(err);
+    return data;
+  }
+}
+
+function findIssues(dir, callback) {
+  const data = readProcessedJSON(dir);
+  const issues = {};
+  issues.summary = {};
+  issues.details = [];
+  let issueCount = 0;
+
+  
+/*
+  if (data.device.details.PasswordProtected === 'true') {
+    count++;
+    let issueDetails = {};
+    issueDetails.title = 'Device not password protected';
+    issueDetails.level = 'medium';
+    issueDetails.description = 'This device does is not password protected. The device is more suseptible to compromise if an attacker can briefly gain physical access. THese risks include the ability to extract data from the device (using backup, forensic or maybe even ios-triage!) and run applications. In addition, sensitive data encrypted at rest by the iDevice and apps lack an additional level of security.';
+    issueDetails.remediation = 'Password protext the device, ideally with an alphanumeric passcode or a PIN at least 6 digits long';
+    issues.details.push(issueDetails);     
+  }
+
+  issues.summary.count = issueCount;
+*/
+  logger.info("data in findIssues: %s", JSON.stringify(data));
+  logger.debug("findIssues complete, %s", JSON.stringify(issues));
+  callback(null, "find issues completed");
+
+}
 
 function generateReport(dir, callback) {
 
@@ -844,29 +926,7 @@ function generateReport(dir, callback) {
         copydir.sync(pkgAssetPath, reportPath);
       };
 
-      // read json data files to pass to handlebar template
-      const deviceFile = path.join(processedPath, 'device.json');
-      const appsFile = path.join(processedPath, 'apps.json');
-      const pprofilesJSONFile = path.join(processedPath, 'pprofiles.json');
-      const syslogJSONFile = path.join(processedPath, 'syslog.json');
-      const crashreportsJSONFile = path.join(processedPath, 'crashreports.json');
-      const backupJSONFile = path.join(processedPath, 'backup.json');
-
-      const deviceJSON = fs.readFileSync(deviceFile, 'utf8');
-      const appsJSON = fs.readFileSync(appsFile, 'utf8');
-      const pprofilesJSON = fs.readFileSync(pprofilesJSONFile, 'utf8');
-      const syslogJSON = fs.readFileSync(syslogJSONFile, 'utf8');
-      const crashreportsJSON = fs.readFileSync(crashreportsJSONFile, 'utf8');
-      const backupJSON = fs.readFileSync(backupJSONFile, 'utf8');
-
-      const data = {};
-      data.cli = pkg.name + ' v' + pkg.version;
-      data.device = JSON.parse(deviceJSON);
-      data.apps = JSON.parse(appsJSON);
-      data.pprofiles = JSON.parse(pprofilesJSON);
-      data.syslog = JSON.parse(syslogJSON);
-      data.crashreports = JSON.parse(crashreportsJSON);
-      data.backup = JSON.parse(backupJSON);
+      const data = readProcessedJSON(dir);
 
       logger.debug(JSON.stringify(data));
 
