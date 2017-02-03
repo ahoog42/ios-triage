@@ -13,6 +13,7 @@ const path = require('path');
 const handlebars = require('handlebars');
 const copydir = require('copy-dir');
 const split = require('split');
+const deepdiff = require('deep-diff').diff;
 
 global.__base = __dirname + '/';
 
@@ -45,44 +46,44 @@ program
   .action(function(dir) {
     if (program.debug) { logger.transports.console.level = 'debug'; };
 
-async.series({
-    processArtifacts: function(callback) {
-      // process device info
-      logger.info("executing processArtifacts now");
-      processArtifacts(dir, function(err, results) {
-        if (err) {
-          logger.warn("error in processArtifacts: %s", err);
-        } else {
-          logger.info(results);
-        };
-        callback(null, "done procesing all artifacts");
-      });
-    },
-    findIssues: function(callback) {
-      logger.info("executing findIssues now");
-      findIssues(dir, function(err, results) {
-        if (err) {
-          logger.warn(err);
-        } else {
-          logger.info(results);
-        };
-        callback(null, "done finding issues");
-      });
-    }
-}, function(err, results) {
-      if (err) { logger.warn(err); };
-      logger.info("done processing artifacts and finding issues");
+    async.series({
+        processArtifacts: function(callback) {
+          // process device info
+          logger.info("executing processArtifacts now");
+          processArtifacts(dir, function(err, results) {
+            if (err) {
+              logger.warn("error in processArtifacts: %s", err);
+            } else {
+              logger.info(results);
+            };
+            callback(null, "done procesing all artifacts");
+          });
+        },
+        findIssues: function(callback) {
+          logger.info("executing findIssues now");
+          findIssues(dir, function(err, results) {
+            if (err) {
+              logger.warn(err);
+            } else {
+              logger.info(results);
+            };
+            callback(null, "done finding issues");
+          });
+        }
+    }, function(err, results) {
+          if (err) { logger.warn(err); };
+          logger.info("done processing artifacts and finding issues");
     });
 
   });
 
 program
   .command('report')
-  .arguments('<dir>')
+  .arguments('<dir> [diffdir]')
   .description('Generate iOS IR reports from <dir>')
-  .action(function(dir) {
+  .action(function(dir, diffdir) {
     if (program.debug) { logger.transports.console.level = 'debug'; };
-    generateReport(dir, function(err, runStatus) {
+    generateReport(dir, diffdir, function(err, runStatus) {
       if (err) { 
         logger.error(err); 
       } else {
@@ -566,9 +567,9 @@ async.parallel({
   }
 }, function(err, results) {
   if (err) {
-    logger.warn("in processArtifact async.parallel call final function: %s", err);
+    logger.debug("in processArtifact async.parallel call final function: %s", err);
   } else {
-    logger.info("in processArtifact async.parallel call final function: %s", results);
+    logger.debug("in processArtifact async.parallel call final function: %s", results);
   };
   callback("null", "completed processArtifact async.parallel execution");
 });
@@ -648,7 +649,7 @@ function processInstalledAppsXML(dir, callback) {
       if (err) {
         callback(null, "error writing parsed app data to disk");
       } else {
-        callback(null, "app data written to disk");
+        callback(null, "wrote app data to disk");
       }
     }); 
   });
@@ -737,8 +738,21 @@ function processProvisioningProfiles(dir, callback) {
           count++;
           // now let's parse the pprofile xml file into a json object
           logger.debug('parsing %s', path.join(pprofilePath,file));
-          let obj = plist.parse(fs.readFileSync(path.join(pprofilePath,file), 'utf8'));
-          pprofiles.details.push(obj);
+          let obj = {};
+          try {
+            obj = plist.parse(fs.readFileSync(path.join(pprofilePath,file), 'utf8'));
+            pprofiles.details.push(obj);
+          } catch (err) {
+            /*
+            sometimes it appears ideviceprovision won't be able to list a pprofile
+            in this instance, let's surface to the user so addl inspection. sample output:
+            profile_get_embedded_plist: unexpected profile data (0)
+            (unknown id) - (no name)
+            */
+            logger.debug("error reading a pprofile from the device, filename: %s", file);
+            obj.AppIDName = "error reading pprofile " + file + " from device";
+            pprofiles.details.push(obj);
+          }
         };
         callback();
       }, function(err) {
@@ -851,7 +865,15 @@ function processBackup(dir, callback) {
     // handled the error event before pipe, I guess order matters here
     .on('error', function() {
       // not flagging as error, just going to write a blank backup object
-      callback(null, "Backup dir not found, skipping processing");
+      logger.info("Backup dir not found, skipping processing");
+      const backupJSON = JSON.stringify(backup);
+      fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8', function (err) {
+        if (err) {
+          callback(null, "error writing parsed backup data to disk");
+        } else {
+          callback(null, "wrote parsed backup data to disk");
+        }
+      });
     })
     .pipe(split())
     .on('data', function(line) {
@@ -879,7 +901,10 @@ function processBackup(dir, callback) {
     });
 };
 
-function readProcessedJSON(dir) {
+function readProcessedJSON(dir, loadIssues) {
+  // since we reuse readProcessedJSON, we don't always have an issues.json
+  // use the loadIssues boolean to determine if we should try to read that file
+
   const processedPath = path.join(dir, 'processed');
 
   // read json data files to pass to handlebar template
@@ -891,6 +916,7 @@ function readProcessedJSON(dir) {
   const backupJSONFile = path.join(processedPath, 'backup.json');
   const issuesJSONFile = path.join(processedPath, 'issues.json');
 
+  let issuesJSON = {};
   const data = {};
   
   try {
@@ -900,7 +926,9 @@ function readProcessedJSON(dir) {
     const syslogJSON = fs.readFileSync(syslogJSONFile, 'utf8');
     const crashreportsJSON = fs.readFileSync(crashreportsJSONFile, 'utf8');
     const backupJSON = fs.readFileSync(backupJSONFile, 'utf8');
-    const issuesJSON = fs.readFileSync(issuesJSONFile, 'utf8');
+    if (loadIssues) {
+      issuesJSON = fs.readFileSync(issuesJSONFile, 'utf8');
+    };
 
     data.cli = pkg.name + ' v' + pkg.version;
     data.device = JSON.parse(deviceJSON);
@@ -909,7 +937,9 @@ function readProcessedJSON(dir) {
     data.syslog = JSON.parse(syslogJSON);
     data.crashreports = JSON.parse(crashreportsJSON);
     data.backup = JSON.parse(backupJSON);
-    data.issues = JSON.parse(issuesJSON);
+    if (loadIssues) {
+      data.issues = JSON.parse(issuesJSON);
+    };
     return data;
   } catch (err) {
     logger.error(err);
@@ -919,7 +949,7 @@ function readProcessedJSON(dir) {
 
 function findIssues(dir, callback) {
   const processedPath = path.join(dir, 'processed');
-  const data = readProcessedJSON(dir);
+  const data = readProcessedJSON(dir, false);
   const issues = {};
   issues.summary = {};
   issues.details = [];
@@ -950,12 +980,20 @@ function findIssues(dir, callback) {
 
 };
 
-function generateReport(dir, callback) {
+function generateReport(dir, diffdir, callback) {
 
   const processedPath = path.join(dir, 'processed');
   const artifactPath = path.join(dir, 'artifacts');
   const reportPath = path.join(dir,'reports');
-  const cssPath = path.join(reportPath,'assets','dist','css');
+  const cssPath = path.join(reportPath, 'assets', 'dist', 'css');
+
+  let dataRhs = null;
+  let doDiff = false;
+  let diffdirProcessedPath = null;
+  if (diffdir) {
+    diffdirProcessedPath = path.join(diffdir, 'processed');
+    doDiff = true;
+  };
 
   // if no artifact dir exists, err. 
   if (!fs.existsSync(artifactPath)) {
@@ -965,6 +1003,18 @@ function generateReport(dir, callback) {
     if (!fs.existsSync(processedPath)) {
       return callback("No processed directory found, run `ios-triage process <dir>` first");
     } else {
+      // if diffdir is passed in, check to see if processed dir exists there for diff'ing
+      if (doDiff) {
+        if (fs.existsSync(diffdirProcessedPath)) {
+          logger.info("will diff with artifacts from %s", diffdirProcessedPath);
+          doDiff = true;
+          dataRhs = readProcessedJSON(diffdir, true);
+        } else {
+          doDiff = false;
+          logger.warn("DiffDir processed path %s doesn't exist, not diff'ing", diffdirProcessedPath);
+        };
+      };
+
       // create report dir and copy assests if needed
       if(!fs.existsSync(reportPath)) {
        fs.mkdirSync(reportPath);
@@ -977,7 +1027,11 @@ function generateReport(dir, callback) {
         copydir.sync(pkgAssetPath, reportPath);
       };
 
-      const data = readProcessedJSON(dir);
+      const data = readProcessedJSON(dir, true);
+      if (doDiff) {
+        const diff = deepdiff(data, dataRhs);
+        data.diff = diff;
+      };
 
       logger.debug(JSON.stringify(data));
 

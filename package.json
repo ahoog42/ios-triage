@@ -31,6 +31,7 @@
     "async": "^2.1.4",
     "commander": "^2.9.0",
     "copy-dir": "^0.3.0",
+    "deep-diff": "^0.3.4",
     "handlebars": "^4.0.6",
     "plist": "^2.0.1",
     "split": "^1.0.0",
