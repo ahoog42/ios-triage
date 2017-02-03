@@ -7,7 +7,33 @@
     <!-- Begin page content -->
     <div class="container">
 
-    <p>Here's where we will compare 2 (or maybe more) extractions</p>
+    <h2>Diffs activated</h2>
+
+    {{#each diff}}
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th colspan="2">
+        Diff #{{@index}} for 
+        {{#each this.path}}
+          {{this}}.
+        {{/each}}
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>LHS</td>
+      <td>RHS</td>
+    </tr>
+    <tr>
+      <td>{{this.lhs}}</td>
+      <td>{{this.rhs}}</td>
+    </tr>
+  </tbody>
+</table>
+<br />
+  {{/each}}
 
 <!-- footer partial -->
 {{> footer }}
