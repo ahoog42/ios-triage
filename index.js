@@ -598,6 +598,7 @@ function processInstalledAppsXML(dir, callback) {
   let allowArbitraryLoads = 0;
   let allowArbitraryLoadsInWebContent = 0;
   let domainsAllowedArbitraryLoads = 0;
+  let domainsForceTLSLoads = 0;
 
   async.parallel({
     processApps: function(callback) {
@@ -625,23 +626,53 @@ function processInstalledAppsXML(dir, callback) {
                };
                 break;
               case "NSAppTransportSecurity":
-                if (app[attrib].NSAllowsArbitraryLoads === true) {
-                  allowArbitraryLoads++;
-                };
-                if (app[attrib].NSAllowsArbitraryLoadsInWebContent === true) {
-                  allowArbitraryLoadsInWebContent++;
-                };
-/*
-                if (app[attrib].NSExceptionDomains instanceof Object) {
-                  for(let domain in app[attrib]) {
-                    logger.info("found exception for domain %s: ", domain);
-                    if (domain.NSExceptionAllowsInsecureHTTPLoads === true) {
-                      domainsAllowedArbitraryLoads++;
-                    };
-                 };
-                };
-*/
-                break;
+                for(let transportProperty in app[attrib]) {
+                  logger.debug("examining %s: ", transportProperty);
+                  switch(transportProperty) {
+                    case "NSAllowsArbitraryLoads":
+                      if (app[attrib][transportProperty] === true) {
+                        allowArbitraryLoads++;
+                      };
+                      break;
+                    case "NSAllowsArbitraryLoadsInWebContent":
+                      if (app[attrib][transportProperty] === true) {
+                        allowArbitraryLoadsInWebContent++;
+                      };
+                      break;
+                    case "NSExceptionDomains":
+                      for(let domain in app[attrib][transportProperty]) {
+                        /* 
+                        need to test to see if domain (normally and object) is set to null, e.g.
+                          {
+                          "NSExceptionDomains": {
+                            "http://guide.2demo.net/": null
+                          },
+                            "NSAllowsArbitraryLoads": true
+                          } 
+                        */
+                        /* 
+                        let _allowInsecureHTTPLocal = null;
+                        if ("NSExceptionAllowsInsecureHTTPLoads" in app[attrib][transportProperty][domain]) {
+                          _allowInsecureHTTPLocal = app[attrib][transportProperty][domain].NSExceptionAllowsInsecureHTTPLoads;
+                        };
+                        logger.info("found exception for domain (%s, %s): ", domain, _allowInsecureHTTPLocal);
+                        if ((_allowsInsecureHTTPLoads !== null) && (_allowsInsecureHTTPLoads === true)) {
+                        */
+                          domainsAllowedArbitraryLoads++;
+                        /* 
+                        } else {
+                          domainsForceTLSLoads++;
+                        };
+                        */
+                      };
+                      break;
+                    default:
+                      // found an unknown NSAppTransportSecurity property
+                      logger.debug("found an unknown NSAppTransportSecurity property: %s", transportProperty);
+                      break;
+                  };
+                }; // for loop on NSAppTransportSecurity
+                break; // NSAppTransportSecurity
               case "UIRequiresPersistentWiFi":
                 if(app[attrib] === true) {
                   usePersistentWifi++;
@@ -689,6 +720,7 @@ function processInstalledAppsXML(dir, callback) {
         callback(null, "finished processing app plist");
       } catch (err) {
         // could not read apps xml or hit plist parse error
+        logger.error("hit error processing app data: %s", err);
         callback(err);
       };
     }
@@ -705,7 +737,8 @@ function processInstalledAppsXML(dir, callback) {
     apps.summary.requestsForPrivacySensitiveDataAccess = requestsForPrivacySensitiveDataAccess;
     apps.summary.allowArbitraryLoads = allowArbitraryLoads;
     apps.summary.allowArbitraryLoadsInWebContent = allowArbitraryLoadsInWebContent;
-    //apps.summary.domainsAllowedArbitraryLoads = domainsAllowedArbitraryLoads;
+    apps.summary.domainsAllowedArbitraryLoads = domainsAllowedArbitraryLoads;
+    // apps.summary.domainsForceTLSLoads = domainsForceTLSLoads;
 
     logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
     const parsedAppsJSON = JSON.stringify(apps);
