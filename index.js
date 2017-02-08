@@ -585,12 +585,16 @@ function processInstalledAppsXML(dir, callback) {
   const apps = {};
   apps.summary = {};
   apps.summary.entitlements = {};
+  apps.summary.privacySensitiveDataAccess = {};
+  apps.summary.UIBackgroundModes = {};
 
   let totalApps = 0;
   let userApps = 0;
   let systemApps = 0;
   let nonAppleSigner = 0;
   let appsWithEntitlements = 0;
+  let persistentWifi = 0;
+
 
   async.parallel({
     processApps: function(callback) {
@@ -611,13 +615,32 @@ function processInstalledAppsXML(dir, callback) {
               case "Entitlements":
                 appsWithEntitlements++;
                 for(let entitlement in app[attrib]) {
+                  /* maybe this is nicer way to write the below?
+                  if (!(key in object)) {
+                    object[key] = 0;
+                  }
+                  object[key]++;
+                  */
                   if (entitlement in apps.summary.entitlements) {
-                    logger.info("found entitlement %si more than once", entitlement);
                     apps.summary.entitlements[entitlement]++;
                   } else {
                     apps.summary.entitlements[entitlement] = 1;
                   }; 
                };
+                break;
+              case "UIRequiresPersistentWiFi":
+                if(app[attrib] === true) {
+                  persistentWifi++;
+                }
+                break;
+              case "UIBackgroundModes":
+                for(let i=0; i < app[attrib].length; i++) {
+                  if(app[attrib][i] in apps.summary.UIBackgroundModes) {
+                    apps.summary.UIBackgroundModes[app[attrib][i]]++;
+                  } else {
+                    apps.summary.UIBackgroundModes[app[attrib][i]] = 1;
+                  };
+                };
                 break;
               case "SignerIdentity":
                 if(app[attrib] !== "Apple iPhone OS Application Signing") {
@@ -638,6 +661,9 @@ function processInstalledAppsXML(dir, callback) {
                 break;
               default:
                 // otherwise ignore property for now
+                if(attrib.endsWith("UsageDescription")) {
+                  logger.info("found an app request access to privacy-sensitive data");
+                };
                 break;
             };
           };
@@ -657,6 +683,7 @@ function processInstalledAppsXML(dir, callback) {
     apps.summary.systemApps = systemApps;
     apps.summary.nonAppleSigner = nonAppleSigner;
     apps.summary.appsWithEntitlements = appsWithEntitlements;
+    apps.summary.persistentWifi = persistentWifi;
 
     logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
     const parsedAppsJSON = JSON.stringify(apps);
