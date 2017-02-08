@@ -1165,7 +1165,11 @@ function generateReport(dir, diffdir, callback) {
           const html = template(data);
           // copy html to <dir>/reports/index.html
           const htmlFile = path.join(reportPath, templateName + '.html');
-          fs.writeFile(htmlFile, html, 'utf8');
+          fs.writeFile(htmlFile, html, 'utf8', function (err) {
+            if (err) {
+              logger.error("error writing html file (%s) disk with error: %s", htmlFile, err);
+            };
+          }); 
         });
       });
 
