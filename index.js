@@ -593,8 +593,11 @@ function processInstalledAppsXML(dir, callback) {
   let systemApps = 0;
   let nonAppleSigner = 0;
   let appsWithEntitlements = 0;
-  let persistentWifi = 0;
+  let usePersistentWifi = 0;
   let requestsForPrivacySensitiveDataAccess = 0;
+  let allowArbitraryLoads = 0;
+  let allowArbitraryLoadsInWebContent = 0;
+  let domainsAllowedArbitraryLoads = 0;
 
   async.parallel({
     processApps: function(callback) {
@@ -615,31 +618,41 @@ function processInstalledAppsXML(dir, callback) {
               case "Entitlements":
                 appsWithEntitlements++;
                 for(let entitlement in app[attrib]) {
-                  /* maybe this is nicer way to write the below?
-                  if (!(key in object)) {
-                    object[key] = 0;
-                  }
-                  object[key]++;
-                  */
-                  if (entitlement in apps.summary.entitlements) {
-                    apps.summary.entitlements[entitlement]++;
-                  } else {
-                    apps.summary.entitlements[entitlement] = 1;
-                  }; 
+                  if (!(entitlement in apps.summary.entitlements)) {
+                    apps.summary.entitlements[entitlement] = 0;
+                  };
+                  apps.summary.entitlements[entitlement]++;
                };
+                break;
+              case "NSAppTransportSecurity":
+                if (app[attrib].NSAllowsArbitraryLoads === true) {
+                  allowArbitraryLoads++;
+                };
+                if (app[attrib].NSAllowsArbitraryLoadsInWebContent === true) {
+                  allowArbitraryLoadsInWebContent++;
+                };
+/*
+                if (app[attrib].NSExceptionDomains instanceof Object) {
+                  for(let domain in app[attrib]) {
+                    logger.info("found exception for domain %s: ", domain);
+                    if (domain.NSExceptionAllowsInsecureHTTPLoads === true) {
+                      domainsAllowedArbitraryLoads++;
+                    };
+                 };
+                };
+*/
                 break;
               case "UIRequiresPersistentWiFi":
                 if(app[attrib] === true) {
-                  persistentWifi++;
-                }
+                  usePersistentWifi++;
+                };
                 break;
               case "UIBackgroundModes":
                 for(let i=0; i < app[attrib].length; i++) {
-                  if(app[attrib][i] in apps.summary.UIBackgroundModes) {
-                    apps.summary.UIBackgroundModes[app[attrib][i]]++;
-                  } else {
-                    apps.summary.UIBackgroundModes[app[attrib][i]] = 1;
+                  if (!(app[attrib][i] in apps.summary.UIBackgroundModes)) {
+                    apps.summary.UIBackgroundModes[app[attrib][i]] = 0;
                   };
+                  apps.summary.UIBackgroundModes[app[attrib][i]]++;
                 };
                 break;
               case "SignerIdentity":
@@ -688,8 +701,11 @@ function processInstalledAppsXML(dir, callback) {
     apps.summary.systemApps = systemApps;
     apps.summary.nonAppleSigner = nonAppleSigner;
     apps.summary.appsWithEntitlements = appsWithEntitlements;
-    apps.summary.persistentWifi = persistentWifi;
+    apps.summary.usePersistentWifi = usePersistentWifi;
     apps.summary.requestsForPrivacySensitiveDataAccess = requestsForPrivacySensitiveDataAccess;
+    apps.summary.allowArbitraryLoads = allowArbitraryLoads;
+    apps.summary.allowArbitraryLoadsInWebContent = allowArbitraryLoadsInWebContent;
+    //apps.summary.domainsAllowedArbitraryLoads = domainsAllowedArbitraryLoads;
 
     logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
     const parsedAppsJSON = JSON.stringify(apps);
