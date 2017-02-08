@@ -1172,8 +1172,6 @@ function generateReport(dir, diffdir, callback) {
           }); 
         });
       });
-
-
     callback(null, "report saved to " + path.resolve(path.join(reportPath, "index.html")));
     };
   };
