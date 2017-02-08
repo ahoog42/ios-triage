@@ -36,7 +36,13 @@
               <li>Total apps: {{apps.summary.totalApps}}</li>
               <li>System apps: {{apps.summary.systemApps}}</li>
               <li>User apps: {{apps.summary.userApps}}</li>
-              <li>Non-Apple Signed apps: {{apps.summary.nonAppleSigner}}</li>
+              <li>Non-Apple Signed apps: {{apps.summary.appsWithEntitlements}}</li>
+              <li>Have entitlements: {{apps.summary.nonAppleSigner}}</li>
+              <li>Use Persistent WiFi: {{apps.summary.usePersistentWifi}}</li>
+              <li>Privacy-Sensitive Data Access: {{apps.summary.requestsForPrivacySensitiveDataAccess}}</li>
+              <li>Allow All HTTP: {{apps.summary.allowArbitraryLoads}}</li>
+              <li>Allow HTTP in Web Content: {{apps.summary.allowArbitraryLoadsInWebContent}}</li>
+              <li>HTTP Domain exceptions: {{apps.summary.domainsAllowedArbitraryLoads}}</li>
           </ul>
           <a href="#" class="btn btn-primary">App Details</a>
         </div>
@@ -79,6 +85,37 @@
             {{/if}}
           </ul>
           <a href="#" class="btn btn-primary">Log Details</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-sm-6">
+      <div class="card">
+        <h3 class="card-header">App UI Background Modes</h3>
+        <div class="card-block">
+          <h4 class="card-title">Backgound Mode, App count</h4>
+            <ul>
+            {{#each apps.summary.UIBackgroundModes}}
+                <li>{{@key}}: {{this}}</li>
+            {{/each}}
+            </ul>
+          <a href="apps.html" class="btn btn-primary">App Details</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="card">
+        <h3 class="card-header">Privacy Sensitive Data Access</h3>
+        <div class="card-block">
+        <h4 class="card-title">API, App count</h4>
+          <ul>
+            {{#each apps.summary.privacySensitiveDataAccess}}
+                <li>{{@key}}: {{this}}</li>
+            {{/each}}
+          </ul>
+          <a href="apps.html" class="btn btn-primary">App Details</a>
         </div>
       </div>
     </div>
