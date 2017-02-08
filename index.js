@@ -489,7 +489,8 @@ function processArtifacts(dir, callback) {
 
   // if no artifact dir exists, err. 
   if (!fs.existsSync(artifactPath)) {
-    return callback("No artifact directory found at " + artifactPath);
+    logger.error("No artifact directory found at %s", artifactPath);
+    process.exit(1);
   } else {  
     // see if processed dir exists, if so alert but continue. otherwise, create
     if (!fs.existsSync(processedPath)) {
