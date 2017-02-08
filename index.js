@@ -594,7 +594,7 @@ function processInstalledAppsXML(dir, callback) {
   let nonAppleSigner = 0;
   let appsWithEntitlements = 0;
   let persistentWifi = 0;
-
+  let requestsForPrivacySensitiveDataAccess = 0;
 
   async.parallel({
     processApps: function(callback) {
@@ -662,7 +662,12 @@ function processInstalledAppsXML(dir, callback) {
               default:
                 // otherwise ignore property for now
                 if(attrib.endsWith("UsageDescription")) {
-                  logger.info("found an app request access to privacy-sensitive data");
+                  logger.debug("found an app request access to privacy-sensitive data");
+                  requestsForPrivacySensitiveDataAccess++;
+                  if (!(attrib in apps.summary.privacySensitiveDataAccess)) {
+                    apps.summary.privacySensitiveDataAccess[attrib] = 0;
+                  }
+                  apps.summary.privacySensitiveDataAccess[attrib]++;
                 };
                 break;
             };
@@ -684,6 +689,7 @@ function processInstalledAppsXML(dir, callback) {
     apps.summary.nonAppleSigner = nonAppleSigner;
     apps.summary.appsWithEntitlements = appsWithEntitlements;
     apps.summary.persistentWifi = persistentWifi;
+    apps.summary.requestsForPrivacySensitiveDataAccess = requestsForPrivacySensitiveDataAccess;
 
     logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
     const parsedAppsJSON = JSON.stringify(apps);
