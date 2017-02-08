@@ -583,11 +583,14 @@ function processInstalledAppsXML(dir, callback) {
   const processedPath = path.join(dir, 'processed');
   const installedAppsXML = path.join(artifactPath, 'installed-apps.xml');
   const apps = {};
+  apps.summary = {};
+  apps.summary.entitlements = {};
 
   let totalApps = 0;
   let userApps = 0;
   let systemApps = 0;
   let nonAppleSigner = 0;
+  let appsWithEntitlements = 0;
 
   async.parallel({
     processApps: function(callback) {
@@ -601,11 +604,21 @@ function processInstalledAppsXML(dir, callback) {
         for (let prop in obj) {
           // every prop in array is properties for an app
           const app = obj[prop];
-          let appInfo = {}; //object to store individual app properties in
 
           totalApps++;
           for(let attrib in app) {
             switch(attrib) {
+              case "Entitlements":
+                appsWithEntitlements++;
+                for(let entitlement in app[attrib]) {
+                  if (entitlement in apps.summary.entitlements) {
+                    logger.info("found entitlement %si more than once", entitlement);
+                    apps.summary.entitlements[entitlement]++;
+                  } else {
+                    apps.summary.entitlements[entitlement] = 1;
+                  }; 
+               };
+                break;
               case "SignerIdentity":
                 if(app[attrib] !== "Apple iPhone OS Application Signing") {
                   nonAppleSigner++;
@@ -637,13 +650,14 @@ function processInstalledAppsXML(dir, callback) {
     }
   }, function (error, results) {
     if (error) { logger.warn("could not read or parse app data"); }
+
     // object for summary app data
-    apps.summary = {
-      "totalApps": totalApps,
-      "userApps": userApps,
-      "systemApps": systemApps,
-      "nonAppleSigner": nonAppleSigner
-    };
+    apps.summary.totalApps = totalApps;
+    apps.summary.userApps = userApps;
+    apps.summary.systemApps = systemApps;
+    apps.summary.nonAppleSigner = nonAppleSigner;
+    apps.summary.appsWithEntitlements = appsWithEntitlements;
+
     logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
     const parsedAppsJSON = JSON.stringify(apps);
     fs.writeFile(processedPath + path.sep + 'apps.json', parsedAppsJSON, 'utf8', function (err) {
