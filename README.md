@@ -22,6 +22,8 @@ sudo apt-get install ideviceinstaller libimobiledevice-utils build-essential lib
 ```
 
 ### Install node ([nvm](https://github.com/creationix/nvm))
+Remaining steps are for both OSX and Linux.
+
 ```
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | bash
 
@@ -80,6 +82,7 @@ ios-triage report 1485283295826/ 1486829681725/
 There's quite a bit to do in the future. Also note that I used this project to teach myself nodejs so there's quite a bit of cruft in the code. 
 
 * Move to a database backend
+* Create docker container to remove dependencies and perhaps run on Windows
 * Download iOS apps via iTunes and perform additional static analysis
 * Integrate third-party data sources
 * Allow upload and then comparision of non-PII data to crowsource our efforts
