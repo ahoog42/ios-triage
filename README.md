@@ -10,7 +10,10 @@ Currently working on OSX and Linux. This program depends on the excellent libimo
 These instructions are based on a fresh Ubuntu 16.04 LTS install.
 
 Install dependecies:
-```sudo apt-get install ideviceinstaller libimobiledevice-utils build-essential libssl-dev git```
+
+```
+sudo apt-get install ideviceinstaller libimobiledevice-utils build-essential libssl-dev git
+```
 
 Install node ([nvm](https://github.com/creationix/nvm))
 ```
