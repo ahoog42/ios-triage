@@ -12,21 +12,20 @@
 <p>Crash reports downloaded: {{crashreports.summary.reports}}</p>
 <p> Jump to report: 
 {{#each crashreports.summary.filenames}}
-  <a href="#crashreport{{@index}}">{{@index}}</a> |
+  <a href="#{{this}}">{{@index}}</a> |
 {{/each}}
 
 <p>Crash report details</p>
   
-{{#each crashreports.summary.filenames}}
+{{#each crashreports.details}}
 
-<table id="crashreport{{@index}}" class="table table-striped table-bordered">
+<table id="{{filename}}" class="table table-striped table-bordered">
   <thead>
-    <tr><th>{{this}}</th></tr>
+    <tr><th>{{filename}}</th></tr>
   </thead>
   <tbody>
       <tr><td>
-Todo: Show up to 5 lines<br \>
-Of the log file for quicker analysis <br \>
+        {{preview}}
       </td></tr>
   </tbody>
 </table>

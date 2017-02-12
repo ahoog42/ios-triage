@@ -34,6 +34,7 @@
     "deep-diff": "^0.3.4",
     "handlebars": "^4.0.6",
     "plist": "^2.0.1",
+    "read-chunk": "^2.0.0",
     "split": "^1.0.0",
     "winston": "^2.3.0",
     "xmldom": "^0.1.27"

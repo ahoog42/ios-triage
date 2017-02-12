@@ -14,6 +14,7 @@ const handlebars = require('handlebars');
 const copydir = require('copy-dir');
 const split = require('split');
 const deepdiff = require('deep-diff').diff;
+const readChunk = require('read-chunk');
 
 global.__base = __dirname + '/';
 
@@ -934,6 +935,29 @@ function processCrashReports(dir, callback) {
           "reports": count,
           "filenames": filenames
         };
+        crashreports.details = [];
+
+        // read each log file to get properties and 
+        for(let i=0; i < crashreports.summary.filenames.length; i++) {
+          let filename = path.join(crashreportPath, crashreports.summary.filenames[i]);
+          logger.debug("time to get details on %s", filename);
+          let fileStats = fs.statSync(filename);
+          let preview = "Empty file";
+          if (fileStats.size > 0) {
+            if (fileStats.size < 500) {
+              preview = readChunk.sync(filename, 0, fileStats.size);
+            } else {
+              preview = readChunk.sync(filename, 0, 500);
+            };
+          };
+          let fileDetails = {};
+          fileDetails.filename = crashreports.summary.filenames[i];
+          fileDetails.size = fileStats.size;
+          fileDetails.preview = preview.toString();
+          crashreports.details.push(fileDetails);          
+        }; 
+
+        // write processed artifact data
         logger.debug("crash report data processed, writing to %s", path.join(processedPath, 'crashreports.json'));
         logger.debug('crashreports object: %s', JSON.stringify(crashreports));
         const crashreportsJSON = JSON.stringify(crashreports);
