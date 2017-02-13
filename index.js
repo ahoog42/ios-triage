@@ -4,9 +4,8 @@
 const pkg = require('./package.json');
 const program = require('commander');
 const fs = require('fs');
-const os = require('os');
 const async = require('async');
-const child_process = require('child_process');
+const childProcess = require('child_process');
 const logger = require('./logger.js');
 const plist = require('plist');
 const path = require('path');
@@ -16,12 +15,12 @@ const split = require('split');
 const deepdiff = require('deep-diff').diff;
 const readChunk = require('read-chunk');
 
-global.__base = __dirname + '/';
+global.__base = path.join(__dirname, '/');
 
 program
   .version(pkg.version)
   .description('Incident response tool for iPhone or iPad')
-  .option('--debug', 'Display debugging output')
+  .option('--debug', 'Display debugging output');
 
 program
   .command('extract')
@@ -29,14 +28,14 @@ program
   .description('Extract IR artifacts from iPhone or iPad')
   .option('-b, --backup', 'Backup iOS device')
   .option('--syslog-timeout <seconds>', 'Optional timeout for how long to collect syslong, e.g. 86400 to collect for a day')
-  .action(function(dir, options) {
-    if (program.debug) { logger.transports.console.level = 'debug'; };
-    extractArtifacts(dir, options, function(err, runStatus) {
-      if (err) { 
+  .action(function (dir, options) {
+    if (program.debug) { logger.transports.console.level = 'debug'; }
+    extractArtifacts(dir, options, function (err, runStatus) {
+      if (err) {
         logger.error(err);
       } else {
         logger.info(runStatus);
-      };
+      }
     });
   });
 
@@ -44,52 +43,51 @@ program
   .command('process')
   .arguments('<dir>')
   .description('Process extracted artifacts in <dir>')
-  .action(function(dir) {
-    if (program.debug) { logger.transports.console.level = 'debug'; };
+  .action(function (dir) {
+    if (program.debug) { logger.transports.console.level = 'debug'; }
 
     async.series({
-        processArtifacts: function(callback) {
+      processArtifacts: function (callback) {
           // process device info
-          logger.info("executing processArtifacts now");
-          processArtifacts(dir, function(err, results) {
-            if (err) {
-              logger.warn("error in processArtifacts: %s", err);
-            } else {
-              logger.info(results);
-            };
-            callback(null, "done procesing all artifacts");
-          });
-        },
-        findIssues: function(callback) {
-          logger.info("executing findIssues now");
-          findIssues(dir, function(err, results) {
-            if (err) {
-              logger.warn(err);
-            } else {
-              logger.info(results);
-            };
-            callback(null, "done finding issues");
-          });
-        }
-    }, function(err, results) {
-          if (err) { logger.warn(err); };
-          logger.info("done processing artifacts and finding issues");
+        logger.info('executing processArtifacts now');
+        processArtifacts(dir, function (err, results) {
+          if (err) {
+            logger.warn('error in processArtifacts: %s', err);
+          } else {
+            logger.info(results);
+          }
+          callback(null, 'done procesing all artifacts');
+        });
+      },
+      findIssues: function (callback) {
+        logger.info('executing findIssues now');
+        findIssues(dir, function (err, results) {
+          if (err) {
+            logger.warn(err);
+          } else {
+            logger.info(results);
+          }
+          callback(null, 'done finding issues');
+        });
+      }
+    }, function (err, results) {
+      if (err) { logger.warn(err); }
+      logger.info('done processing artifacts and finding issues');
     });
-
   });
 
 program
   .command('report')
   .arguments('<dir> [diffdir]')
   .description('Generate iOS IR reports from <dir>')
-  .action(function(dir, diffdir) {
-    if (program.debug) { logger.transports.console.level = 'debug'; };
-    generateReport(dir, diffdir, function(err, runStatus) {
-      if (err) { 
-        logger.error(err); 
+  .action(function (dir, diffdir) {
+    if (program.debug) { logger.transports.console.level = 'debug'; }
+    generateReport(dir, diffdir, function (err, runStatus) {
+      if (err) {
+        logger.error(err);
       } else {
         logger.info(runStatus);
-      };
+      }
     });
   });
 
@@ -98,91 +96,90 @@ program.parse(process.argv);
 // if program was called with no arguments, show help.
 if (program.args.length === 0) {
   program.help();
-};
+}
 // reverted check to see if command was valid. would like to get
 // this to work. https://github.com/tj/commander.js/issues/57#issue-4481445
 
-
 function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
-  let wd = "";
+  let workingDir = '';
   if (userOutputDir) {
-    wd = userOutputDir;
+    workingDir = userOutputDir;
   } else {
-    wd = __dirname;
-  };
+    workingDir = __dirname;
+  }
 
-  // need to move away from "/" and start using path.sep
-  const wd_udid = wd + "/" + udid;
-  const wd_udid_epoch = wd_udid + '/' + currentEpoch;
+  const udidDir = path.join(workingDir, udid);
+  const udidEpochDir = path.join(udidDir, currentEpoch);
+  const artifactDir = path.join(udidEpochDir, 'artifacts');
 
-  if (!fs.existsSync(wd_udid)){
-    fs.mkdirSync(wd_udid);
-  };
+  if (!fs.existsSync(udidDir)) {
+    fs.mkdirSync(udidDir);
+  }
 
-  if (!fs.existsSync(wd_udid_epoch)){
-    fs.mkdirSync(wd_udid_epoch);
-  };
+  if (!fs.existsSync(udidEpochDir)) {
+    fs.mkdirSync(udidEpochDir);
+  }
 
-  if (!fs.existsSync(wd_udid_epoch + '/artifacts')){
-    fs.mkdirSync(wd_udid_epoch + '/artifacts');
-  };
+  if (!fs.existsSync(artifactDir)) {
+    fs.mkdirSync(artifactDir);
+  }
 
-  logger.info("output directory set to %s", wd_udid_epoch);
-  return(wd_udid_epoch);
+  logger.info('output directory set to %s', udidEpochDir);
+  return (udidEpochDir);
 }
 
-function extractArtifacts(dir, options, callback) {
-  // let's first get the UDID...if we can't do this successfully, we have a problem 
+function extractArtifacts (dir, options, callback) {
+  // let's first get the UDID...if we can't do this successfully, we have a problem
   getUDID(function (err, udid) {
-    if (err) { 
-      return callback(new Error(err)); 
-    };
+    if (err) {
+      return callback(new Error(err));
+    }
 
     // no error getting UDID so time to fetch data
     // first we'll setup the working directory, saving data in unique dir each time based on epoch time
-    const currentEpoch = new Date().getTime(); 
-    const wd = setWorkingDirectory(dir, udid, currentEpoch);
+    const currentEpoch = new Date().getTime();
+    const wd = setWorkingDirectory(dir, udid, currentEpoch.toString());
 
-    const idevicesyslog = getDeviceSyslog(udid, wd, options.syslogTimeout); 
+    const idevicesyslog = getDeviceSyslog(udid, wd, options.syslogTimeout);
 
     async.parallel({
-      backup: function(callback) {
+      backup: function (callback) {
         if (options.backup) {
           doDeviceBackup(udid, wd, callback);
         } else {
-          logger.info("Skipping device backup");
+          logger.info('Skipping device backup');
           // this callback() is critical so async.parallel can return
           callback();
         }
       },
-      deviceInfo: function(callback) {
+      deviceInfo: function (callback) {
         getDeviceInfo(udid, wd, callback);
       },
-      installedApps: function(callback) {
+      installedApps: function (callback) {
         getInstalledApps(udid, wd, callback);
       },
-      provisioningProfiles: function(callback) {
+      provisioningProfiles: function (callback) {
         copyProvisioningProfiles(udid, wd, callback);
       },
-      crashReports: function(callback) {
+      crashReports: function (callback) {
         getCrashReports(udid, wd, callback);
       }
-    }, function(err, results) {
-      //handle any errors from extraction functions
-      if(options.syslogTimeout === undefined) {
+    }, function (err, results) {
+      // handle any errors from extraction functions
+      if (options.syslogTimeout === undefined) {
         logger.info("completed all extraction functions so we'll now kill deviceSyslog");
         idevicesyslog.kill('SIGINT');
       } else {
-        logger.info("waiting %d seconds for syslog to execute", options.syslogTimeout);
-      };
+        logger.info('waiting %d seconds for syslog to execute', options.syslogTimeout);
+      }
       callback(null, 'extract complete');
-    }); 
+    });
   });
-};
+}
 
 function getUDID (callback) {
-  var retval = ''; 
-  const udid = child_process.spawn('idevice_id', ['-l']);
+  var retval = '';
+  const udid = childProcess.spawn('idevice_id', ['-l']);
 
   udid.stdout.on('data', (chunk) => {
     // FIXME: if idevice_id fires the data event more than once the this would overwrite
@@ -191,7 +188,7 @@ function getUDID (callback) {
   });
 
   udid.on('close', code => {
-    /*  
+    /*
     Unfortunately idevice_id returns a 0 in all situations I checked
     which differs from how ideviceinfo works. If you call idevice_id with
     an invalid parameter or no device is attached, it still returns a 0.
@@ -203,31 +200,30 @@ function getUDID (callback) {
       // found a valid udid so return null error and uuid value
       // first let's make this a string and trim any newlines
       const udid_str = String.fromCharCode.apply(null, retval);
-      logger.info("Authorized iDevice found, UDID: %s", udid_str.trim());
+      logger.info('Authorized iDevice found, UDID: %s', udid_str.trim());
       callback(null, udid_str.trim());
     } else {
       // encountered some sort of error. If 0 len then no device attached, otherwise something else
       if (retval.length === 0) {
-        return callback(new Error("No authorized iDevice found. Plug in and authorize a device first."));
+        return callback(new Error('No authorized iDevice found. Plug in and authorize a device first.'));
       } else {
         return callback(new Error(retval));
-      };
-    };
+      }
+    }
   });
-};
+}
 
-function getDeviceSyslog(udid, wd, syslogTimeout) { 
-
+function getDeviceSyslog (udid, wd, syslogTimeout) {
   const file_name = 'syslog.txt';
   const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   let userTimeout = 0;
   // check to see if user specified a timeout
   if (syslogTimeout) {
-    // syslog timeout was specified so run with that user setting 
+    // syslog timeout was specified so run with that user setting
     // FIX: add check to make sure syslogTimeout is an int or catch the conversion error
-    userTimeout = Number(syslogTimeout)*1000;
-  };
+    userTimeout = Number(syslogTimeout) * 1000;
+  }
 
   // execFile maxBuffer is set to 200k but I've overode it here to 5MB. I'll probably
   // need to change this call to exec or fork, need to research a little more
@@ -235,31 +231,31 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
   // that in the calling function if we wanted.
   const opts = {
     timeout: userTimeout,
-    maxBuffer: 5000*1024
+    maxBuffer: 5000 * 1024
   };
 
   // call idevicesyslog binary
-  const idevicesyslog = child_process.execFile('idevicesyslog', [], opts );
+  const idevicesyslog = childProcess.execFile('idevicesyslog', [], opts);
 
-  logger.info("capturing device syslog...");
+  logger.info('capturing device syslog...');
 
   // on data events, write chunks to file
-  idevicesyslog.stdout.on('data', (chunk) => { 
-    file.write(chunk); 
+  idevicesyslog.stdout.on('data', (chunk) => {
+    file.write(chunk);
   });
 
   // after Stream ends, close the file, inform user of saved file
-  idevicesyslog.stdout.on('end', () => { 
-    file.end(); 
-    logger.debug("in getDeviceSyslog, end event fired");
+  idevicesyslog.stdout.on('end', () => {
+    file.end();
+    logger.debug('in getDeviceSyslog, end event fired');
   });
 
-  idevicesyslog.on('close', function(code) {
+  idevicesyslog.on('close', function (code) {
     if (code != 0) {
-      logger.error("idevicesyslog returned error code " + code);
+      logger.error('idevicesyslog returned error code ' + code);
       // return callback(new Error('idevicesyslog returned error code ' + code));
     } else {
-      logger.debug("in getDeviceSyslog, close event triggered without error");
+      logger.debug('in getDeviceSyslog, close event triggered without error');
       logger.info('iOS Device syslog saved');
       // callback(null, idevicesyslog);
     }
@@ -268,75 +264,74 @@ function getDeviceSyslog(udid, wd, syslogTimeout) {
   // for syslog, we call back immediately and return the childProcess so the calling program
   // has control over deciding when to kill the process. Could be immediately after other
   // extraction is complete or after a timeout value
-  //callback(null, idevicesyslog);
-  return(idevicesyslog);
-};
+  // callback(null, idevicesyslog);
+  return (idevicesyslog);
+}
 
-function getDeviceInfo(udid, wd, callback) { 
-
+function getDeviceInfo (udid, wd, callback) {
   // idevice info can be run with no "domains" or domains supplied, netting more info
   // we'll build an array of domains to call and do this in a loop
 
   const domains = [
-    "", 
-    "com.apple.disk_usage", 
-    "com.apple.disk_usage.factory", 
-    "com.apple.mobile.battery", 
-    "com.apple.iqagent", 
-    "com.apple.purplebuddy", 
-    "com.apple.PurpleBuddy", 
-    "com.apple.mobile.chaperone", 
-    "com.apple.mobile.third_party_termination", 
-    "com.apple.mobile.lockdownd", 
-    "com.apple.mobile.lockdown_cache", 
-    "com.apple.xcode.developerdomain", 
-    "com.apple.international", 
-    "com.apple.mobile.data_sync", 
-    "com.apple.mobile.tethered_sync", 
-    "com.apple.mobile.mobile_application_usage", 
-    "com.apple.mobile.backup", 
-    "com.apple.mobile.nikita", 
-    "com.apple.mobile.restriction", 
-    "com.apple.mobile.user_preferences", 
-    "com.apple.mobile.sync_data_class", 
-    "com.apple.mobile.software_behavior", 
-    "com.apple.mobile.iTunes.SQLMusicLibraryPostProcessCommands", 
-    "com.apple.mobile.iTunes.accessories", 
-    "com.apple.mobile.internal", 
-    "com.apple.mobile.wireless_lockdown", 
-    "com.apple.fairplay", 
-    "com.apple.iTunes", 
-    "com.apple.mobile.iTunes.store", 
-    "com.apple.mobile.iTunes"
+    '',
+    'com.apple.disk_usage',
+    'com.apple.disk_usage.factory',
+    'com.apple.mobile.battery',
+    'com.apple.iqagent',
+    'com.apple.purplebuddy',
+    'com.apple.PurpleBuddy',
+    'com.apple.mobile.chaperone',
+    'com.apple.mobile.third_party_termination',
+    'com.apple.mobile.lockdownd',
+    'com.apple.mobile.lockdown_cache',
+    'com.apple.xcode.developerdomain',
+    'com.apple.international',
+    'com.apple.mobile.data_sync',
+    'com.apple.mobile.tethered_sync',
+    'com.apple.mobile.mobile_application_usage',
+    'com.apple.mobile.backup',
+    'com.apple.mobile.nikita',
+    'com.apple.mobile.restriction',
+    'com.apple.mobile.user_preferences',
+    'com.apple.mobile.sync_data_class',
+    'com.apple.mobile.software_behavior',
+    'com.apple.mobile.iTunes.SQLMusicLibraryPostProcessCommands',
+    'com.apple.mobile.iTunes.accessories',
+    'com.apple.mobile.internal',
+    'com.apple.mobile.wireless_lockdown',
+    'com.apple.fairplay',
+    'com.apple.iTunes',
+    'com.apple.mobile.iTunes.store',
+    'com.apple.mobile.iTunes'
   ];
 
   const baseFilename = 'ideviceinfo';
   domains.forEach(function (domain) {
-    let domainAddl = "";
-    if (domain !== "") {
+    let domainAddl = '';
+    if (domain !== '') {
       domainAddl = '-' + domain;
-    };
-    
+    }
+
     const filename = baseFilename + domainAddl + '.xml';
     const file = fs.createWriteStream(wd + '/artifacts/' + filename);
 
     // call ideviceinfo binary with domain extension if present
     let opts = ['--xml'];
-    if (domain !== "") {
-      opts.push('--domain'); 
+    if (domain !== '') {
+      opts.push('--domain');
       opts.push(domain);
-    };
+    }
     logger.debug('calling ideviceinfo with opts: %s', opts);
-    const ideviceinfo = child_process.spawn('ideviceinfo', opts);
+    const ideviceinfo = childProcess.spawn('ideviceinfo', opts);
 
     // on data events, write chunks to file
-    ideviceinfo.stdout.on('data', (chunk) => { 
-      file.write(chunk); 
+    ideviceinfo.stdout.on('data', (chunk) => {
+      file.write(chunk);
     });
 
     // after Stream ends, close the file, inform user of saved file
-    ideviceinfo.stdout.on('end', () => { 
-      file.end(); 
+    ideviceinfo.stdout.on('end', () => {
+      file.end();
       logger.debug('iOS Device info saved, domain: %s', domain);
       // callback(null, ideviceinfo);
     });
@@ -344,7 +339,7 @@ function getDeviceInfo(udid, wd, callback) {
     // should this event be on exit or on close?
     // per documentation, not all Streams emit a close event
     // https://nodejs.org/api/stream.html#stream_event_close
-    ideviceinfo.on('close', function(code) {
+    ideviceinfo.on('close', function (code) {
       if (code != 0) {
         // return callback(new Error('Error: ideviceinfo (domain: ' + domain + ') returned error code ' + code));
         logger.error('Error: ideviceinfo (domain: %s) returned error code %s', domain, code);
@@ -352,42 +347,40 @@ function getDeviceInfo(udid, wd, callback) {
     });
   });
   // does this callback immediately?
-  callback(null, "complete device info extraction");
-};
+  callback(null, 'complete device info extraction');
+}
 
-function getInstalledApps(udid, wd, callback) { 
-
+function getInstalledApps (udid, wd, callback) {
   const file_name = 'installed-apps.xml';
   const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
 
   // call ideviceinstaller binary
-  const ideviceinstaller = child_process.spawn('ideviceinstaller', ['--list-apps', '-o','list_all', '-o', 'xml']);
+  const ideviceinstaller = childProcess.spawn('ideviceinstaller', ['--list-apps', '-o', 'list_all', '-o', 'xml']);
 
   // on data events, write chunks to file
-  ideviceinstaller.stdout.on('data', (chunk) => { 
-    file.write(chunk); 
+  ideviceinstaller.stdout.on('data', (chunk) => {
+    file.write(chunk);
   });
 
   // after Stream ends, close the file, inform user of saved file
-  ideviceinstaller.stdout.on('end', () => { 
-    file.end(); 
+  ideviceinstaller.stdout.on('end', () => {
+    file.end();
     logger.info('iOS Device installed apps saved');
     callback(null, ideviceinstaller);
   });
 
-  ideviceinstaller.on('close', function(code) {
+  ideviceinstaller.on('close', function (code) {
     if (code != 0) {
       callback(new Error('ideviceinstaller returned error code ' + code));
     }
   });
-};
+}
 
-function copyProvisioningProfiles(udid, wd, callback) { 
-
+function copyProvisioningProfiles (udid, wd, callback) {
   // ideviceprovision writes any pprofiles to disk vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
   const wd_pprofiles = path.join(wd, 'artifacts', 'pprofiles');
-  if (!fs.existsSync(wd_pprofiles)){
+  if (!fs.existsSync(wd_pprofiles)) {
     fs.mkdirSync(wd_pprofiles);
   }
 
@@ -395,33 +388,32 @@ function copyProvisioningProfiles(udid, wd, callback) {
   const file = fs.createWriteStream(wd_pprofiles + file_name);
 
   // call ideviceprovision binary
-  const ideviceprovision = child_process.spawn('ideviceprovision', ['copy', wd_pprofiles]);
+  const ideviceprovision = childProcess.spawn('ideviceprovision', ['copy', wd_pprofiles]);
 
   // on data events, write chunks to file
-  ideviceprovision.stdout.on('data', (chunk) => { 
-    file.write(chunk); 
+  ideviceprovision.stdout.on('data', (chunk) => {
+    file.write(chunk);
   });
 
   // after Stream ends, close the file, inform user of saved file
-  ideviceprovision.stdout.on('end', () => { 
-    file.end(); 
+  ideviceprovision.stdout.on('end', () => {
+    file.end();
     logger.info('Installed provisioning profiles saved');
     callback(null, ideviceprovision);
   });
 
-  ideviceprovision.on('close', function(code) {
+  ideviceprovision.on('close', function (code) {
     if (code != 0) {
       callback(new Error('ideviceprovision returned error code ' + code));
     }
   });
-};
+}
 
-function getCrashReports(udid, wd, callback) { 
-
+function getCrashReports (udid, wd, callback) {
   // idevicecrashreport writes multiple files vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
   const wd_crashreports = wd + '/artifacts/crash_reports/';
-  if (!fs.existsSync(wd_crashreports)){
+  if (!fs.existsSync(wd_crashreports)) {
     fs.mkdirSync(wd_crashreports);
   }
 
@@ -429,33 +421,33 @@ function getCrashReports(udid, wd, callback) {
   const file = fs.createWriteStream(wd_crashreports + file_name);
 
   // call ideviceprovision binary
-  const idevicecrashreport = child_process.spawn('idevicecrashreport', ['--extract', '--keep', wd_crashreports]);
+  const idevicecrashreport = childProcess.spawn('idevicecrashreport', ['--extract', '--keep', wd_crashreports]);
 
   // on data events, write chunks to file
-  idevicecrashreport.stdout.on('data', (chunk) => { 
-    file.write(chunk); 
+  idevicecrashreport.stdout.on('data', (chunk) => {
+    file.write(chunk);
   });
 
   // after Stream ends, close the file, inform user of saved file
-  idevicecrashreport.stdout.on('end', () => { 
-    file.end(); 
+  idevicecrashreport.stdout.on('end', () => {
+    file.end();
     logger.info('Crash reports and log saved');
     callback(null, idevicecrashreport);
   });
 
-  idevicecrashreport.on('close', function(code) {
+  idevicecrashreport.on('close', function (code) {
     if (code != 0) {
       return callback(new Error('idevicecrashreport returned error code ' + code));
     }
   });
-};
+}
 
-function doDeviceBackup(udid, wd, callback) { 
+function doDeviceBackup (udid, wd, callback) {
   // idevicebackup2 backup --full .
   // idevicebackup2 writes many files and directories vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
   const wd_backup = wd + '/artifacts/backup/';
-  if (!fs.existsSync(wd_backup)){
+  if (!fs.existsSync(wd_backup)) {
     fs.mkdirSync(wd_backup);
   }
 
@@ -463,123 +455,122 @@ function doDeviceBackup(udid, wd, callback) {
   const file = fs.createWriteStream(wd_backup + file_name);
 
   // call ideviceprovision binary
-  const idevicebackup2 = child_process.spawn('idevicebackup2', ['backup', '--full', wd_backup]);
+  const idevicebackup2 = childProcess.spawn('idevicebackup2', ['backup', '--full', wd_backup]);
 
   // on data events, write chunks to file
-  idevicebackup2.stdout.on('data', (chunk) => { 
-    file.write(chunk); 
+  idevicebackup2.stdout.on('data', (chunk) => {
+    file.write(chunk);
   });
 
   // after Stream ends, close the file, inform user of saved file
-  idevicebackup2.stdout.on('end', () => { 
-    file.end(); 
+  idevicebackup2.stdout.on('end', () => {
+    file.end();
     logger.info('Device backup and log saved');
     callback(null, idevicebackup2);
   });
 
-  idevicebackup2.on('close', function(code) {
+  idevicebackup2.on('close', function (code) {
     if (code != 0) {
       callback(new Error('idevicebackup2 returned error code ' + code));
     }
   });
-};
+}
 
-function processArtifacts(dir, callback) {
+function processArtifacts (dir, callback) {
   const processedPath = path.join(dir, 'processed');
   const artifactPath = path.join(dir, 'artifacts');
 
-  // if no artifact dir exists, err. 
+  // if no artifact dir exists, err.
   if (!fs.existsSync(artifactPath)) {
-    logger.error("No artifact directory found at %s", artifactPath);
+    logger.error('No artifact directory found at %s', artifactPath);
     process.exit(1);
-  } else {  
+  } else {
     // see if processed dir exists, if so alert but continue. otherwise, create
     if (!fs.existsSync(processedPath)) {
-     fs.mkdirSync(processedPath);
+      fs.mkdirSync(processedPath);
     } else {
       logger.warn('Processed path already exists, overwriting data in %s', path.resolve(processedPath));
-    };
+    }
 
-async.parallel({
-  artifacts: function(callback) {
+    async.parallel({
+      artifacts: function (callback) {
     // device info
-    processDeviceInfo(dir, function(err, results) {
-      if (err) {
-        logger.warn(err);
-      } else {
-        logger.info(results);
-      };
-      callback();
-    });
-  },
-  apps: function(callback) {
+        processDeviceInfo(dir, function (err, results) {
+          if (err) {
+            logger.warn(err);
+          } else {
+            logger.info(results);
+          }
+          callback();
+        });
+      },
+      apps: function (callback) {
     // installed apps
-    processInstalledAppsXML(dir, function(err, results) {
-      if (err) {
-        logger.warn(err);
-      } else {
-        logger.info(results);
-      };
-      callback();
-   });
-  },
-  pprofiles: function(callback) {
+        processInstalledAppsXML(dir, function (err, results) {
+          if (err) {
+            logger.warn(err);
+          } else {
+            logger.info(results);
+          }
+          callback();
+        });
+      },
+      pprofiles: function (callback) {
     // provisioning profiles
-    processProvisioningProfiles(dir, function(err, results) {
+        processProvisioningProfiles(dir, function (err, results) {
+          if (err) {
+            logger.warn(err);
+          } else {
+            logger.info(results);
+          }
+          callback();
+        });
+      },
+      syslog: function (callback) {
+    // process syslog
+        processSyslog(dir, function (err, results) {
+          if (err) {
+            logger.warn(err);
+          } else {
+            logger.info(results);
+          }
+          callback();
+        });
+      },
+      crashreport: function (callback) {
+    // process crash reports
+        processCrashReports(dir, function (err, results) {
+          if (err) {
+            logger.warn(err);
+          } else {
+            logger.info(results);
+          }
+          callback();
+        });
+      },
+      backup: function (callback) {
+    // process backup
+        processBackup(dir, function (err, results) {
+          if (err) {
+            logger.warn(err);
+          } else {
+            logger.info(results);
+          }
+          callback();
+        });
+      }
+    }, function (err, results) {
       if (err) {
-        logger.warn(err);
+        logger.debug('in processArtifact async.parallel call final function: %s', err);
       } else {
-        logger.info(results);
-      };
-      callback();
-   });
-  },
-  syslog: function(callback) {
-    // process syslog 
-    processSyslog(dir, function(err, results) {
-      if (err) {
-        logger.warn(err);
-      } else {
-        logger.info(results);
-      };
-      callback();
-   });
-  },
-  crashreport: function(callback) {
-    // process crash reports 
-    processCrashReports(dir, function(err, results) {
-      if (err) {
-        logger.warn(err);
-      } else {
-        logger.info(results);
-      };
-      callback();
-   });
-  },
-  backup: function(callback) {
-    // process backup  
-    processBackup(dir, function(err, results) {
-      if (err) {
-        logger.warn(err);
-      } else {
-        logger.info(results);
-      };
-      callback();
-   });
-  }
-}, function(err, results) {
-  if (err) {
-    logger.debug("in processArtifact async.parallel call final function: %s", err);
-  } else {
-    logger.debug("in processArtifact async.parallel call final function: %s", results);
-  };
-  callback("null", "completed processArtifact async.parallel execution");
-});
+        logger.debug('in processArtifact async.parallel call final function: %s', results);
+      }
+      callback('null', 'completed processArtifact async.parallel execution');
+    });
+  } // else
+}
 
-  }; // else
-};
-
-function processInstalledAppsXML(dir, callback) {
+function processInstalledAppsXML (dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
   const installedAppsXML = path.join(artifactPath, 'installed-apps.xml');
@@ -602,7 +593,7 @@ function processInstalledAppsXML(dir, callback) {
   let domainsForceTLSLoads = 0;
 
   async.parallel({
-    processApps: function(callback) {
+    processApps: function (callback) {
       try {
         // read and parse plist file
         const obj = plist.parse(fs.readFileSync(installedAppsXML, 'utf8'));
@@ -615,43 +606,43 @@ function processInstalledAppsXML(dir, callback) {
           const app = obj[prop];
 
           totalApps++;
-          for(let attrib in app) {
-            switch(attrib) {
-              case "Entitlements":
+          for (let attrib in app) {
+            switch (attrib) {
+              case 'Entitlements':
                 appsWithEntitlements++;
-                for(let entitlement in app[attrib]) {
+                for (let entitlement in app[attrib]) {
                   if (!(entitlement in apps.summary.entitlements)) {
                     apps.summary.entitlements[entitlement] = 0;
-                  };
+                  }
                   apps.summary.entitlements[entitlement]++;
-               };
+                }
                 break;
-              case "NSAppTransportSecurity":
-                for(let transportProperty in app[attrib]) {
-                  logger.debug("examining %s: ", transportProperty);
-                  switch(transportProperty) {
-                    case "NSAllowsArbitraryLoads":
+              case 'NSAppTransportSecurity':
+                for (let transportProperty in app[attrib]) {
+                  logger.debug('examining %s: ', transportProperty);
+                  switch (transportProperty) {
+                    case 'NSAllowsArbitraryLoads':
                       if (app[attrib][transportProperty] === true) {
                         allowArbitraryLoads++;
-                      };
+                      }
                       break;
-                    case "NSAllowsArbitraryLoadsInWebContent":
+                    case 'NSAllowsArbitraryLoadsInWebContent':
                       if (app[attrib][transportProperty] === true) {
                         allowArbitraryLoadsInWebContent++;
-                      };
+                      }
                       break;
-                    case "NSExceptionDomains":
-                      for(let domain in app[attrib][transportProperty]) {
-                        /* 
+                    case 'NSExceptionDomains':
+                      for (let domain in app[attrib][transportProperty]) {
+                        /*
                         need to test to see if domain (normally and object) is set to null, e.g.
                           {
                           "NSExceptionDomains": {
                             "http://guide.2demo.net/": null
                           },
                             "NSAllowsArbitraryLoads": true
-                          } 
+                          }
                         */
-                        /* 
+                        /*
                         let _allowInsecureHTTPLocal = null;
                         if ("NSExceptionAllowsInsecureHTTPLoads" in app[attrib][transportProperty][domain]) {
                           _allowInsecureHTTPLocal = app[attrib][transportProperty][domain].NSExceptionAllowsInsecureHTTPLoads;
@@ -659,74 +650,74 @@ function processInstalledAppsXML(dir, callback) {
                         logger.info("found exception for domain (%s, %s): ", domain, _allowInsecureHTTPLocal);
                         if ((_allowsInsecureHTTPLoads !== null) && (_allowsInsecureHTTPLoads === true)) {
                         */
-                          domainsAllowedArbitraryLoads++;
-                        /* 
+                        domainsAllowedArbitraryLoads++;
+                        /*
                         } else {
                           domainsForceTLSLoads++;
                         };
                         */
-                      };
+                      }
                       break;
                     default:
                       // found an unknown NSAppTransportSecurity property
-                      logger.debug("found an unknown NSAppTransportSecurity property: %s", transportProperty);
+                      logger.debug('found an unknown NSAppTransportSecurity property: %s', transportProperty);
                       break;
-                  };
-                }; // for loop on NSAppTransportSecurity
+                  }
+                } // for loop on NSAppTransportSecurity
                 break; // NSAppTransportSecurity
-              case "UIRequiresPersistentWiFi":
-                if(app[attrib] === true) {
+              case 'UIRequiresPersistentWiFi':
+                if (app[attrib] === true) {
                   usePersistentWifi++;
-                };
+                }
                 break;
-              case "UIBackgroundModes":
-                for(let i=0; i < app[attrib].length; i++) {
+              case 'UIBackgroundModes':
+                for (let i = 0; i < app[attrib].length; i++) {
                   if (!(app[attrib][i] in apps.summary.UIBackgroundModes)) {
                     apps.summary.UIBackgroundModes[app[attrib][i]] = 0;
-                  };
+                  }
                   apps.summary.UIBackgroundModes[app[attrib][i]]++;
-                };
+                }
                 break;
-              case "SignerIdentity":
-                if(app[attrib] !== "Apple iPhone OS Application Signing") {
+              case 'SignerIdentity':
+                if (app[attrib] !== 'Apple iPhone OS Application Signing') {
                   nonAppleSigner++;
                 }
                 break;
-              case "ApplicationType":
-                switch(app[attrib]) {
-                  case "User":
+              case 'ApplicationType':
+                switch (app[attrib]) {
+                  case 'User':
                     userApps++;
                     break;
-                  case "System":
+                  case 'System':
                     systemApps++;
                     break;
                   default:
                     break;
-                };
+                }
                 break;
               default:
                 // otherwise ignore property for now
-                if(attrib.endsWith("UsageDescription")) {
-                  logger.debug("found an app request access to privacy-sensitive data");
+                if (attrib.endsWith('UsageDescription')) {
+                  logger.debug('found an app request access to privacy-sensitive data');
                   requestsForPrivacySensitiveDataAccess++;
                   if (!(attrib in apps.summary.privacySensitiveDataAccess)) {
                     apps.summary.privacySensitiveDataAccess[attrib] = 0;
                   }
                   apps.summary.privacySensitiveDataAccess[attrib]++;
-                };
+                }
                 break;
-            };
-          };
-        };
-        callback(null, "finished processing app plist");
+            }
+          }
+        }
+        callback(null, 'finished processing app plist');
       } catch (err) {
         // could not read apps xml or hit plist parse error
-        logger.error("hit error processing app data: %s", err);
+        logger.error('hit error processing app data: %s', err);
         callback(err);
-      };
+      }
     }
   }, function (error, results) {
-    if (error) { logger.warn("could not read or parse app data"); }
+    if (error) { logger.warn('could not read or parse app data'); }
 
     // object for summary app data
     apps.summary.totalApps = totalApps;
@@ -741,19 +732,19 @@ function processInstalledAppsXML(dir, callback) {
     apps.summary.domainsAllowedArbitraryLoads = domainsAllowedArbitraryLoads;
     // apps.summary.domainsForceTLSLoads = domainsForceTLSLoads;
 
-    logger.debug("installed apps xml processed, writing to %s", path.join(processedPath, 'installedApps.json'));
+    logger.debug('installed apps xml processed, writing to %s', path.join(processedPath, 'installedApps.json'));
     const parsedAppsJSON = JSON.stringify(apps);
     fs.writeFile(processedPath + path.sep + 'apps.json', parsedAppsJSON, 'utf8', function (err) {
       if (err) {
-        callback(null, "error writing parsed app data to disk");
+        callback(null, 'error writing parsed app data to disk');
       } else {
-        callback(null, "wrote app data to disk");
+        callback(null, 'wrote app data to disk');
       }
-    }); 
+    });
   });
-};
+}
 
-function processDeviceInfo(dir, callback) {
+function processDeviceInfo (dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
   const deviceInfoXML = path.join(artifactPath, 'ideviceinfo.xml');
@@ -761,61 +752,61 @@ function processDeviceInfo(dir, callback) {
   device.details = {};
 
   async.parallel({
-    processDevice: function(callback) {
+    processDevice: function (callback) {
       try {
         // read and parse plist file
         const obj = plist.parse(fs.readFileSync(deviceInfoXML, 'utf8'));
         device.details.standard = obj;
-        callback(null, "Processed main ideviceinfo plist");
+        callback(null, 'Processed main ideviceinfo plist');
       } catch (err) {
         // could not read device xml or hit plist parse error
-        callback(null, "Hit snag processing main ideviceinfo plist");
-      };
+        callback(null, 'Hit snag processing main ideviceinfo plist');
+      }
     },
-    processDomains: function(callback) {
-      fs.readdir(artifactPath, function(err, files) {
+    processDomains: function (callback) {
+      fs.readdir(artifactPath, function (err, files) {
         if (err) {
-          logger.error(err)
-          callback(null, "Hit snags processing some/all ideviceinfo domain files");
+          logger.error(err);
+          callback(null, 'Hit snags processing some/all ideviceinfo domain files');
         } else {
           async.each(files, function (file, callback) {
             if (file.startsWith('ideviceinfo-')) {
               try {
                 let domainName = file.slice(12, (file.length - 4)); // trim ideviceinfo- and .xml
                 let domainInfo = plist.parse(fs.readFileSync(path.join(artifactPath, file), 'utf8'));
-                logger.debug("for domain %s , data: %s", domainName , JSON.stringify(domainInfo));
+                logger.debug('for domain %s , data: %s', domainName, JSON.stringify(domainInfo));
                 device.details[domainName] = domainInfo;
-                callback(null, "successful cb from async.each on domain " + file); // cb for async.each
+                callback(null, 'successful cb from async.each on domain ' + file); // cb for async.each
               } catch (err) {
                 logger.error(err);
-                callback(null, "error in cb from async.each on domain " + file + ". Error: " + err);
+                callback(null, 'error in cb from async.each on domain ' + file + '. Error: ' + err);
               }
             } else {
-              callback(null, "not a domain file so skip");
+              callback(null, 'not a domain file so skip');
             }
-          }, function(err, results) {
-            if (err) { logger.err(err); };
-            logger.debug("results from ideviceinfo async.each cbs: %s", results);
-            callback(null, "processed ideviceinfo domain files");
+          }, function (err, results) {
+            if (err) { logger.err(err); }
+            logger.debug('results from ideviceinfo async.each cbs: %s', results);
+            callback(null, 'processed ideviceinfo domain files');
           });
-        };
+        }
       });
-    } 
+    }
   }, function (error, results) {
-      if (error) { logger.error(error); };
-      logger.debug("device info xml processed, writing to %s", path.join(processedPath, 'deviceInfo.json'));
-      const deviceJSON = JSON.stringify(device);
-      fs.writeFile(path.join(processedPath, 'device.json'), deviceJSON, 'utf8', function (err) {
+    if (error) { logger.error(error); }
+    logger.debug('device info xml processed, writing to %s', path.join(processedPath, 'deviceInfo.json'));
+    const deviceJSON = JSON.stringify(device);
+    fs.writeFile(path.join(processedPath, 'device.json'), deviceJSON, 'utf8', function (err) {
       if (err) {
-        callback(null, "error writing parsed device and domain data to disk");
+        callback(null, 'error writing parsed device and domain data to disk');
       } else {
-        callback(null, "wrote device info and domains to disk");
+        callback(null, 'wrote device info and domains to disk');
       }
     });
   });
-};
-  
-function processProvisioningProfiles(dir, callback) {
+}
+
+function processProvisioningProfiles (dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
   const pprofilePath = path.join(artifactPath, 'pprofiles');
@@ -825,9 +816,9 @@ function processProvisioningProfiles(dir, callback) {
 
   // now let's find all files in pprofilePath ending with .mobileprovision
   // and then call `ideviceprovision --xml dump` on each to get details
-  fs.readdir(pprofilePath, function(err, files) {
+  fs.readdir(pprofilePath, function (err, files) {
     if (err) {
-      return callback(new Error("Provisioning profiles data not processed: " + err));
+      return callback(new Error('Provisioning profiles data not processed: ' + err));
     } else {
       let count = 0;
       async.each(files, function (file, callback) {
@@ -835,10 +826,10 @@ function processProvisioningProfiles(dir, callback) {
           logger.debug('filename: %s', file);
           count++;
           // now let's parse the pprofile xml file into a json object
-          logger.debug('parsing %s', path.join(pprofilePath,file));
+          logger.debug('parsing %s', path.join(pprofilePath, file));
           let obj = {};
           try {
-            obj = plist.parse(fs.readFileSync(path.join(pprofilePath,file), 'utf8'));
+            obj = plist.parse(fs.readFileSync(path.join(pprofilePath, file), 'utf8'));
             pprofiles.details.push(obj);
           } catch (err) {
             /*
@@ -847,36 +838,36 @@ function processProvisioningProfiles(dir, callback) {
             profile_get_embedded_plist: unexpected profile data (0)
             (unknown id) - (no name)
             */
-            logger.debug("error reading a pprofile from the device, filename: %s", file);
-            obj.AppIDName = "error reading pprofile " + file + " from device";
+            logger.debug('error reading a pprofile from the device, filename: %s', file);
+            obj.AppIDName = 'error reading pprofile ' + file + ' from device';
             pprofiles.details.push(obj);
           }
-        };
+        }
         callback();
-      }, function(err) {
+      }, function (err) {
         if (err) {
           logger.error(err);
         } else {
-          logger.debug("pprofiles found: %d", count);
+          logger.debug('pprofiles found: %d', count);
           pprofiles.summary = {
-            "pprofilesFound": count
+            'pprofilesFound': count
           };
-          logger.debug("pprofiles processed, writing to %s", path.join(processedPath, 'pprofiles.json'));
+          logger.debug('pprofiles processed, writing to %s', path.join(processedPath, 'pprofiles.json'));
           const pprofilesJSON = JSON.stringify(pprofiles);
-          fs.writeFile(path.join(processedPath,'pprofiles.json'), pprofilesJSON, 'utf8', function (err) {
+          fs.writeFile(path.join(processedPath, 'pprofiles.json'), pprofilesJSON, 'utf8', function (err) {
             if (err) {
-              callback(null, "error writing pprofile data to disk");
+              callback(null, 'error writing pprofile data to disk');
             } else {
-              callback(null, "wrote pprofile data to disk");
+              callback(null, 'wrote pprofile data to disk');
             }
           });
-        }; 
+        }
       });
-    };
+    }
   });
-};
+}
 
-function processSyslog(dir, callback) {
+function processSyslog (dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
   const syslogFile = path.join(artifactPath, 'syslog.txt');
@@ -885,43 +876,42 @@ function processSyslog(dir, callback) {
     let count = 0;
     fs.createReadStream(syslogFile)
       .pipe(split())
-      .on('data', function(chunk) {
-          count++;
+      .on('data', function (chunk) {
+        count++;
       })
-      .on('end', function() {
+      .on('end', function () {
         const syslog = {};
         syslog.summary = {
-          "lines": count
+          'lines': count
         };
-        logger.debug("syslog processed, writing to %s", path.join(processedPath, 'syslog.json'));
+        logger.debug('syslog processed, writing to %s', path.join(processedPath, 'syslog.json'));
         logger.debug('syslog object: %s', JSON.stringify(syslog));
         const syslogJSON = JSON.stringify(syslog);
         fs.writeFile(path.join(processedPath, 'syslog.json'), syslogJSON, 'utf8', function (err) {
           if (err) {
-            callback(null, "error writing syslog data to disk");
+            callback(null, 'error writing syslog data to disk');
           } else {
-            callback(null, "wrote syslog data to disk");
+            callback(null, 'wrote syslog data to disk');
           }
         });
       });
-  } catch(err) {
-      return new Error("Syslog data not processed: " + err);
-  };
-};
+  } catch (err) {
+    return new Error('Syslog data not processed: ' + err);
+  }
+}
 
-function processCrashReports(dir, callback) {
+function processCrashReports (dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
   const crashreportPath = path.join(artifactPath, 'crash_reports');
   const crashreportLog = path.join(crashreportPath, 'crashlogs.txt');
-
 
   try {
     let count = 0;
     const filenames = [];
     fs.createReadStream(crashreportLog)
       .pipe(split())
-      .on('data', function(line) {
+      .on('data', function (line) {
         if (line.startsWith('Copy: ')) {
           count++;
           // example line: Copy: DiagnosticLogs/security.log.20170119T084705Z
@@ -929,52 +919,52 @@ function processCrashReports(dir, callback) {
           filenames.push(line.split(' ')[1]);
         }
       })
-      .on('end', function() {
+      .on('end', function () {
         const crashreports = {};
         crashreports.summary = {
-          "reports": count,
-          "filenames": filenames
+          'reports': count,
+          'filenames': filenames
         };
         crashreports.details = [];
 
-        // read each log file to get properties and 
-        for(let i=0; i < crashreports.summary.filenames.length; i++) {
+        // read each log file to get properties and
+        for (let i = 0; i < crashreports.summary.filenames.length; i++) {
           let filename = path.join(crashreportPath, crashreports.summary.filenames[i]);
-          logger.debug("time to get details on %s", filename);
+          logger.debug('time to get details on %s', filename);
           let fileStats = fs.statSync(filename);
-          let preview = "Empty file";
+          let preview = 'Empty file';
           if (fileStats.size > 0) {
             if (fileStats.size < 500) {
               preview = readChunk.sync(filename, 0, fileStats.size);
             } else {
               preview = readChunk.sync(filename, 0, 500);
-            };
-          };
+            }
+          }
           let fileDetails = {};
           fileDetails.filename = crashreports.summary.filenames[i];
           fileDetails.size = fileStats.size;
           fileDetails.preview = preview.toString().split('\n');
-          crashreports.details.push(fileDetails);          
-        }; 
+          crashreports.details.push(fileDetails);
+        }
 
         // write processed artifact data
-        logger.debug("crash report data processed, writing to %s", path.join(processedPath, 'crashreports.json'));
+        logger.debug('crash report data processed, writing to %s', path.join(processedPath, 'crashreports.json'));
         logger.debug('crashreports object: %s', JSON.stringify(crashreports));
         const crashreportsJSON = JSON.stringify(crashreports);
         fs.writeFile(path.join(processedPath, 'crashreports.json'), crashreportsJSON, 'utf8', function (err) {
           if (err) {
-            callback(null, "error writing crash report data to disk");
+            callback(null, 'error writing crash report data to disk');
           } else {
-            callback(null, "wrote crash report data to disk");
+            callback(null, 'wrote crash report data to disk');
           }
         });
       });
-  } catch(err) {
-      return new Error("Crash report data not processed: " + err);
-  };
-};
+  } catch (err) {
+    return new Error('Crash report data not processed: ' + err);
+  }
+}
 
-function processBackup(dir, callback) {
+function processBackup (dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
   const backupPath = path.join(artifactPath, 'backup');
@@ -984,45 +974,45 @@ function processBackup(dir, callback) {
   let backupFileCount = 0;
   fs.createReadStream(backupFile)
     // handled the error event before pipe, I guess order matters here
-    .on('error', function() {
+    .on('error', function () {
       // not flagging as error, just going to write a blank backup object
-      logger.info("Backup dir not found, skipping processing");
+      logger.info('Backup dir not found, skipping processing');
       const backupJSON = JSON.stringify(backup);
       fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8', function (err) {
         if (err) {
-          callback(null, "error writing parsed backup data to disk");
+          callback(null, 'error writing parsed backup data to disk');
         } else {
-          callback(null, "wrote parsed backup data to disk");
+          callback(null, 'wrote parsed backup data to disk');
         }
       });
     })
     .pipe(split())
-    .on('data', function(line) {
+    .on('data', function (line) {
       if (line.startsWith('Received ')) {
-        // example line: Received 623 files from device. 
+        // example line: Received 623 files from device.
         // split on ' ' and push the 2nd field to an array
-        logger.debug('found file count in backup log: [%s]',line);
+        logger.debug('found file count in backup log: [%s]', line);
         backupFileCount = line.split(' ')[1];
       }
     })
-    .on('end', function() {
+    .on('end', function () {
       backup.summary = {
-        "files": backupFileCount
+        'files': backupFileCount
       };
-      logger.debug("backup processed, writing to %s", path.join(processedPath, 'backup.json'));
+      logger.debug('backup processed, writing to %s', path.join(processedPath, 'backup.json'));
       logger.debug('backup object: %s', JSON.stringify(backup));
       const backupJSON = JSON.stringify(backup);
       fs.writeFile(path.join(processedPath, 'backup.json'), backupJSON, 'utf8', function (err) {
         if (err) {
-          callback(null, "error writing parsed backup data to disk");
+          callback(null, 'error writing parsed backup data to disk');
         } else {
-          callback(null, "wrote parsed backup data to disk");
+          callback(null, 'wrote parsed backup data to disk');
         }
       });
     });
-};
+}
 
-function readProcessedJSON(dir, loadIssues) {
+function readProcessedJSON (dir, loadIssues) {
   // since we reuse readProcessedJSON, we don't always have an issues.json
   // use the loadIssues boolean to determine if we should try to read that file
 
@@ -1039,7 +1029,7 @@ function readProcessedJSON(dir, loadIssues) {
 
   let issuesJSON = {};
   const data = {};
-  
+
   try {
     const deviceJSON = fs.readFileSync(deviceFile, 'utf8');
     const appsJSON = fs.readFileSync(appsFile, 'utf8');
@@ -1049,7 +1039,7 @@ function readProcessedJSON(dir, loadIssues) {
     const backupJSON = fs.readFileSync(backupJSONFile, 'utf8');
     if (loadIssues) {
       issuesJSON = fs.readFileSync(issuesJSONFile, 'utf8');
-    };
+    }
 
     data.cli = pkg.name + ' v' + pkg.version;
     data.device = JSON.parse(deviceJSON);
@@ -1060,7 +1050,7 @@ function readProcessedJSON(dir, loadIssues) {
     data.backup = JSON.parse(backupJSON);
     if (loadIssues) {
       data.issues = JSON.parse(issuesJSON);
-    };
+    }
     return data;
   } catch (err) {
     logger.error(err);
@@ -1068,7 +1058,7 @@ function readProcessedJSON(dir, loadIssues) {
   }
 }
 
-function findIssues(dir, callback) {
+function findIssues (dir, callback) {
   const processedPath = path.join(dir, 'processed');
   const data = readProcessedJSON(dir, false);
   const issues = {};
@@ -1084,28 +1074,26 @@ function findIssues(dir, callback) {
     issueDetails.level = 'medium';
     issueDetails.description = 'This device does is not password protected. The device is more suseptible to compromise if an attacker can briefly gain physical access. THese risks include the ability to extract data from the device (using backup, forensic or maybe even ios-triage!) and run applications. In addition, sensitive data encrypted at rest by the iDevice and apps lack an additional level of security.';
     issueDetails.remediation = 'Password protext the device, ideally with an alphanumeric passcode or a PIN at least 6 digits long';
-    issues.details.push(issueDetails);     
+    issues.details.push(issueDetails);
   }
 
   issues.summary.count = issueCount;
-  logger.debug("findIssues complete, writing to %s", path.join(processedPath, 'issies.json'));
+  logger.debug('findIssues complete, writing to %s', path.join(processedPath, 'issues.json'));
   logger.debug('issues object: %s', JSON.stringify(issues));
   const issuesJSON = JSON.stringify(issues);
   fs.writeFile(path.join(processedPath, 'issues.json'), issuesJSON, 'utf8', function (err) {
     if (err) {
-      callback(null, "error writing issues.json to disk");
+      callback(null, 'error writing issues.json to disk');
     } else {
-      callback(null, "wrote issues.json to disk");
+      callback(null, 'wrote issues.json to disk');
     }
   });
+}
 
-};
-
-function generateReport(dir, diffdir, callback) {
-
+function generateReport (dir, diffdir, callback) {
   const processedPath = path.join(dir, 'processed');
   const artifactPath = path.join(dir, 'artifacts');
-  const reportPath = path.join(dir,'reports');
+  const reportPath = path.join(dir, 'reports');
   const cssPath = path.join(reportPath, 'assets', 'dist', 'css');
 
   let dataRhs = null;
@@ -1114,50 +1102,50 @@ function generateReport(dir, diffdir, callback) {
   if (diffdir) {
     diffdirProcessedPath = path.join(diffdir, 'processed');
     doDiff = true;
-  };
+  }
 
-  // if no artifact dir exists, err. 
+  // if no artifact dir exists, err.
   if (!fs.existsSync(artifactPath)) {
-    return callback("No artifact directory found, run `ios-triage extract <dir>` first");
-  } else {  
+    return callback('No artifact directory found, run `ios-triage extract <dir>` first');
+  } else {
     // see if processed dir exists, if so alert but continue. otherwise, create
     if (!fs.existsSync(processedPath)) {
-      return callback("No processed directory found, run `ios-triage process <dir>` first");
+      return callback('No processed directory found, run `ios-triage process <dir>` first');
     } else {
       // if diffdir is passed in, check to see if processed dir exists there for diff'ing
       if (doDiff) {
         if (fs.existsSync(diffdirProcessedPath)) {
-          logger.info("will diff with artifacts from %s", diffdirProcessedPath);
+          logger.info('will diff with artifacts from %s', diffdirProcessedPath);
           doDiff = true;
           dataRhs = readProcessedJSON(diffdir, true);
         } else {
           doDiff = false;
           logger.warn("DiffDir processed path %s doesn't exist, not diff'ing", diffdirProcessedPath);
-        };
-      };
+        }
+      }
 
       // create report dir and copy assests if needed
-      if(!fs.existsSync(reportPath)) {
-       fs.mkdirSync(reportPath);
-      } 
+      if (!fs.existsSync(reportPath)) {
+        fs.mkdirSync(reportPath);
+      }
 
       // copy assets to report dir if needed, assuming if css dir exists files were copied
       // a user could muck this up if they tinker in those dirs but punting for now
-      if(!fs.existsSync(cssPath)) {
+      if (!fs.existsSync(cssPath)) {
         const pkgAssetPath = path.join(__base, 'html', 'bootstrap4');
         copydir.sync(pkgAssetPath, reportPath);
-      };
+      }
 
       const data = readProcessedJSON(dir, true);
       if (doDiff) {
         const diff = deepdiff(data, dataRhs);
         data.diff = diff;
-      };
+      }
 
       logger.debug(JSON.stringify(data));
 
       // register handlebarsjs partial files
-      const partials = ["header", "topnavbar", "footer", "detailstabs"];
+      const partials = ['header', 'topnavbar', 'footer', 'detailstabs'];
       partials.forEach(function (item) {
         let partialFile = __base + 'html/templates/partials/' + item + '.hbs';
         let partial = handlebars.compile(fs.readFileSync(partialFile, 'utf-8'));
@@ -1165,39 +1153,30 @@ function generateReport(dir, diffdir, callback) {
       });
 
       // register helpers
-      handlebars.registerHelper('toJSON', function(object){
-          return new handlebars.SafeString(JSON.stringify(object));
+      handlebars.registerHelper('toJSON', function (object) {
+        return new handlebars.SafeString(JSON.stringify(object));
       });
-
-/*
-      // async method bit me...tried to compile index template before partial
-      // was complete. Moved to sync for now but could do async.series too
-      fs.readFile(navbarPartialFile, 'utf-8', function(error, partial){
-        const navbarPartial = handlebars.compile(partial);
-        handlebars.registerPartial('navbarPartial', navbarPartial);
-      });
-*/
 
       // compile handlebarsjs templates, need to add diff json data files next
-      const templateList = ["index", "issues", "diffs", "community", "apps", "device", "crashreports", "pprofiles", "artifacts"];
+      const templateList = ['index', 'issues', 'diffs', 'community', 'apps', 'device', 'crashreports', 'pprofiles', 'artifacts'];
       templateList.forEach(function (templateName) {
         let templateFile = __base + 'html/templates/' + templateName + '.hbs';
-        logger.debug("reading temple file: %s", templateFile);
-        fs.readFile(templateFile, 'utf-8', function(error, source){
-          logger.debug("source is type: %s", Object.prototype.toString.apply(source));
+        logger.debug('reading temple file: %s', templateFile);
+        fs.readFile(templateFile, 'utf-8', function (error, source) {
+          logger.debug('source is type: %s', Object.prototype.toString.apply(source));
           const template = handlebars.compile(source);
           const html = template(data);
           // copy html to <dir>/reports/index.html
           const htmlFile = path.join(reportPath, templateName + '.html');
           fs.writeFile(htmlFile, html, 'utf8', function (err) {
             if (err) {
-              logger.error("error writing html file (%s) disk with error: %s", htmlFile, err);
-            };
-          }); 
+              logger.error('error writing html file (%s) disk with error: %s', htmlFile, err);
+            }
+          });
         });
       });
-    callback(null, "report saved to " + path.resolve(path.join(reportPath, "index.html")));
-    };
-  };
-};
+      callback(null, 'report saved to ' + path.resolve(path.join(reportPath, 'index.html')));
+    }
+  }
+}
 
