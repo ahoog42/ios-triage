@@ -20,4 +20,4 @@ const logger = new (winston.Logger)({
   ]
 });
 
-module.exports = logger
+module.exports = logger;
