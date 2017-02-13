@@ -25,7 +25,9 @@
   </thead>
   <tbody>
       <tr><td>
-        {{preview}}
+        {{#each preview}}
+          {{this}}<br />
+        {{/each}}
       </td></tr>
   </tbody>
 </table>

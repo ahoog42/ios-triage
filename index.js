@@ -953,7 +953,7 @@ function processCrashReports(dir, callback) {
           let fileDetails = {};
           fileDetails.filename = crashreports.summary.filenames[i];
           fileDetails.size = fileStats.size;
-          fileDetails.preview = preview.toString();
+          fileDetails.preview = preview.toString().split('\n');
           crashreports.details.push(fileDetails);          
         }; 
 
