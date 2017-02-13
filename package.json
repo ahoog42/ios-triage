@@ -4,7 +4,7 @@
   "description": "CLI for iOS incident response",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 0"
+    "test": "semistandard"
   },
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
     "triage",
     "cli"
   ],
-  "author": "Andrew Hoog",
+  "author": "Andrew Hoog <ahoog42@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/ahoog42/ios-triage/issues"
@@ -38,5 +38,13 @@
     "split": "^1.0.0",
     "winston": "^2.3.0",
     "xmldom": "^0.1.27"
+  },
+  "devDependencies": {
+    "semistandard": "^9.2.1"
+  },
+  "semistandard": {
+    "ignore": [
+      "html"
+    ]
   }
 }
