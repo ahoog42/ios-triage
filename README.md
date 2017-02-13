@@ -1,4 +1,4 @@
-# ios-triage
+# ios-triage [![Build Status](https://travis-ci.org/ahoog42/ios-triage.svg?branch=master)](https://travis-ci.org/ahoog42/ios-triage)
 Node.js cli for iOS incident response. Program will extract, process and report (including diffs) on iOS device and app telemetry.
 
 ## Installation
