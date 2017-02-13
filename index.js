@@ -14,6 +14,7 @@ const copydir = require('copy-dir');
 const split = require('split');
 const deepdiff = require('deep-diff').diff;
 const readChunk = require('read-chunk');
+const iOSversions = require('./ios-versions.js');
 
 const __base = path.join(__dirname, '/');
 
@@ -1075,6 +1076,26 @@ function findIssues (dir, callback) {
     issueDetails.level = 'medium';
     issueDetails.description = 'This device does is not password protected. The device is more suseptible to compromise if an attacker can briefly gain physical access. THese risks include the ability to extract data from the device (using backup, forensic or maybe even ios-triage!) and run applications. In addition, sensitive data encrypted at rest by the iDevice and apps lack an additional level of security.';
     issueDetails.remediation = 'Password protext the device, ideally with an alphanumeric passcode or a PIN at least 6 digits long';
+    issues.details.push(issueDetails);
+  }
+
+  if (data.device.details.standard.ProductVersion !== iOSversions.LATEST_IOS_VERSION) {
+    issueCount++;
+    let issueDetails = {};
+    issueDetails.title = 'iOS version out of date';
+    issueDetails.level = 'high';
+    issueDetails.description = 'This device is not running the latest version of iOS. Apple regularly patches security flaws in iOS and the flaws are publicly acknowledged (see https://support.apple.com/en-us/HT207482 for 10.2.1 security update). Attackers can leverage this information to compromise your device and data.';
+    issueDetails.remediation = 'Update your device to the latest available version immediately (currently ' + iOSversions.LATEST_IOS_VERSION + '). If you are running on older hardware and newer iOS versions are unavailable, it is recommended you move to a new device.';
+    issues.details.push(issueDetails);
+  }
+
+  if (data.pprofiles.summary.pprofilesFound > 0) {
+    issueCount++;
+    let issueDetails = {};
+    issueDetails.title = 'Provisioning profiles found';
+    issueDetails.level = 'medium';
+    issueDetails.description = 'Install provisioning profiles can create situations for abuse. An attacker with physical access could push an app onto your device with significant privileges.';
+    issueDetails.remediation = 'Inspect all provisioning profiles to ensure they are legitimate.';
     issues.details.push(issueDetails);
   }
 
