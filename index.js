@@ -15,7 +15,7 @@ const split = require('split');
 const deepdiff = require('deep-diff').diff;
 const readChunk = require('read-chunk');
 
-global.__base = path.join(__dirname, '/');
+const __base = path.join(__dirname, '/');
 
 program
   .version(pkg.version)
@@ -166,6 +166,7 @@ function extractArtifacts (dir, options, callback) {
       }
     }, function (err, results) {
       // handle any errors from extraction functions
+      if (err) { logger.error('errors encountered during extraction. error: %s\nresults: %s', err, results); }
       if (options.syslogTimeout === undefined) {
         logger.info("completed all extraction functions so we'll now kill deviceSyslog");
         idevicesyslog.kill('SIGINT');
@@ -199,9 +200,9 @@ function getUDID (callback) {
     if (retval.length === 41) {
       // found a valid udid so return null error and uuid value
       // first let's make this a string and trim any newlines
-      const udid_str = String.fromCharCode.apply(null, retval);
-      logger.info('Authorized iDevice found, UDID: %s', udid_str.trim());
-      callback(null, udid_str.trim());
+      const udidStr = String.fromCharCode.apply(null, retval);
+      logger.info('Authorized iDevice found, UDID: %s', udidStr.trim());
+      callback(null, udidStr.trim());
     } else {
       // encountered some sort of error. If 0 len then no device attached, otherwise something else
       if (retval.length === 0) {
@@ -214,8 +215,8 @@ function getUDID (callback) {
 }
 
 function getDeviceSyslog (udid, wd, syslogTimeout) {
-  const file_name = 'syslog.txt';
-  const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  const filename = 'syslog.txt';
+  const file = fs.createWriteStream(wd + '/artifacts/' + filename);
 
   let userTimeout = 0;
   // check to see if user specified a timeout
@@ -251,7 +252,7 @@ function getDeviceSyslog (udid, wd, syslogTimeout) {
   });
 
   idevicesyslog.on('close', function (code) {
-    if (code != 0) {
+    if (code !== 0) {
       logger.error('idevicesyslog returned error code ' + code);
       // return callback(new Error('idevicesyslog returned error code ' + code));
     } else {
@@ -340,7 +341,7 @@ function getDeviceInfo (udid, wd, callback) {
     // per documentation, not all Streams emit a close event
     // https://nodejs.org/api/stream.html#stream_event_close
     ideviceinfo.on('close', function (code) {
-      if (code != 0) {
+      if (code !== 0) {
         // return callback(new Error('Error: ideviceinfo (domain: ' + domain + ') returned error code ' + code));
         logger.error('Error: ideviceinfo (domain: %s) returned error code %s', domain, code);
       }
@@ -351,8 +352,8 @@ function getDeviceInfo (udid, wd, callback) {
 }
 
 function getInstalledApps (udid, wd, callback) {
-  const file_name = 'installed-apps.xml';
-  const file = fs.createWriteStream(wd + '/artifacts/' + file_name);
+  const filename = 'installed-apps.xml';
+  const file = fs.createWriteStream(wd + '/artifacts/' + filename);
 
   // call ideviceinstaller binary
   const ideviceinstaller = childProcess.spawn('ideviceinstaller', ['--list-apps', '-o', 'list_all', '-o', 'xml']);
@@ -370,7 +371,7 @@ function getInstalledApps (udid, wd, callback) {
   });
 
   ideviceinstaller.on('close', function (code) {
-    if (code != 0) {
+    if (code !== 0) {
       callback(new Error('ideviceinstaller returned error code ' + code));
     }
   });
@@ -379,16 +380,16 @@ function getInstalledApps (udid, wd, callback) {
 function copyProvisioningProfiles (udid, wd, callback) {
   // ideviceprovision writes any pprofiles to disk vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
-  const wd_pprofiles = path.join(wd, 'artifacts', 'pprofiles');
-  if (!fs.existsSync(wd_pprofiles)) {
-    fs.mkdirSync(wd_pprofiles);
+  const pprofilesDir = path.join(wd, 'artifacts', 'pprofiles');
+  if (!fs.existsSync(pprofilesDir)) {
+    fs.mkdirSync(pprofilesDir);
   }
 
-  const file_name = 'ideviceprovision.log';
-  const file = fs.createWriteStream(wd_pprofiles + file_name);
+  const filename = 'ideviceprovision.log';
+  const file = fs.createWriteStream(pprofilesDir + filename);
 
   // call ideviceprovision binary
-  const ideviceprovision = childProcess.spawn('ideviceprovision', ['copy', wd_pprofiles]);
+  const ideviceprovision = childProcess.spawn('ideviceprovision', ['copy', pprofilesDir]);
 
   // on data events, write chunks to file
   ideviceprovision.stdout.on('data', (chunk) => {
@@ -403,7 +404,7 @@ function copyProvisioningProfiles (udid, wd, callback) {
   });
 
   ideviceprovision.on('close', function (code) {
-    if (code != 0) {
+    if (code !== 0) {
       callback(new Error('ideviceprovision returned error code ' + code));
     }
   });
@@ -412,16 +413,16 @@ function copyProvisioningProfiles (udid, wd, callback) {
 function getCrashReports (udid, wd, callback) {
   // idevicecrashreport writes multiple files vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
-  const wd_crashreports = wd + '/artifacts/crash_reports/';
-  if (!fs.existsSync(wd_crashreports)) {
-    fs.mkdirSync(wd_crashreports);
+  const crashreportsDir = wd + '/artifacts/crash_reports/';
+  if (!fs.existsSync(crashreportsDir)) {
+    fs.mkdirSync(crashreportsDir);
   }
 
-  const file_name = 'crashlogs.txt';
-  const file = fs.createWriteStream(wd_crashreports + file_name);
+  const filename = 'crashlogs.txt';
+  const file = fs.createWriteStream(crashreportsDir + filename);
 
   // call ideviceprovision binary
-  const idevicecrashreport = childProcess.spawn('idevicecrashreport', ['--extract', '--keep', wd_crashreports]);
+  const idevicecrashreport = childProcess.spawn('idevicecrashreport', ['--extract', '--keep', crashreportsDir]);
 
   // on data events, write chunks to file
   idevicecrashreport.stdout.on('data', (chunk) => {
@@ -436,7 +437,7 @@ function getCrashReports (udid, wd, callback) {
   });
 
   idevicecrashreport.on('close', function (code) {
-    if (code != 0) {
+    if (code !== 0) {
       return callback(new Error('idevicecrashreport returned error code ' + code));
     }
   });
@@ -446,16 +447,16 @@ function doDeviceBackup (udid, wd, callback) {
   // idevicebackup2 backup --full .
   // idevicebackup2 writes many files and directories vs. returning to stdout
   // creating a directory to store this data and putting stdout into log file
-  const wd_backup = wd + '/artifacts/backup/';
-  if (!fs.existsSync(wd_backup)) {
-    fs.mkdirSync(wd_backup);
+  const backupDir = wd + '/artifacts/backup/';
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir);
   }
 
-  const file_name = 'backup_log.txt';
-  const file = fs.createWriteStream(wd_backup + file_name);
+  const filename = 'backup_log.txt';
+  const file = fs.createWriteStream(backupDir + filename);
 
   // call ideviceprovision binary
-  const idevicebackup2 = childProcess.spawn('idevicebackup2', ['backup', '--full', wd_backup]);
+  const idevicebackup2 = childProcess.spawn('idevicebackup2', ['backup', '--full', backupDir]);
 
   // on data events, write chunks to file
   idevicebackup2.stdout.on('data', (chunk) => {
@@ -470,7 +471,7 @@ function doDeviceBackup (udid, wd, callback) {
   });
 
   idevicebackup2.on('close', function (code) {
-    if (code != 0) {
+    if (code !== 0) {
       callback(new Error('idevicebackup2 returned error code ' + code));
     }
   });
@@ -590,7 +591,7 @@ function processInstalledAppsXML (dir, callback) {
   let allowArbitraryLoads = 0;
   let allowArbitraryLoadsInWebContent = 0;
   let domainsAllowedArbitraryLoads = 0;
-  let domainsForceTLSLoads = 0;
+  // let domainsForceTLSLoads = 0;
 
   async.parallel({
     processApps: function (callback) {
@@ -633,7 +634,8 @@ function processInstalledAppsXML (dir, callback) {
                       break;
                     case 'NSExceptionDomains':
                       for (let domain in app[attrib][transportProperty]) {
-                        /*
+                        logger.debug('found exception for domain %s: ', domain);
+                       /*
                         need to test to see if domain (normally and object) is set to null, e.g.
                           {
                           "NSExceptionDomains": {
@@ -810,7 +812,7 @@ function processProvisioningProfiles (dir, callback) {
   const artifactPath = path.join(dir, 'artifacts');
   const processedPath = path.join(dir, 'processed');
   const pprofilePath = path.join(artifactPath, 'pprofiles');
-  const ideviceprovisionLog = path.join(pprofilePath, 'ideviceprovision.log');
+  // const ideviceprovisionLog = path.join(pprofilePath, 'ideviceprovision.log');
   const pprofiles = {};
   pprofiles.details = [];
 
@@ -1066,8 +1068,7 @@ function findIssues (dir, callback) {
   issues.details = [];
   let issueCount = 0;
 
-  if (data.device.details.standard.PasswordProtected) {
-    // so that I have some issues, I'm flipped the logic here right now! should be if !
+  if (!data.device.details.standard.PasswordProtected) {
     issueCount++;
     let issueDetails = {};
     issueDetails.title = 'Device not password protected';
@@ -1173,6 +1174,7 @@ function generateReport (dir, diffdir, callback) {
               logger.error('error writing html file (%s) disk with error: %s', htmlFile, err);
             }
           });
+          if (error) { logger.error('Error reading template file %s, error details: %s', templateFile, error); }
         });
       });
       callback(null, 'report saved to ' + path.resolve(path.join(reportPath, 'index.html')));
