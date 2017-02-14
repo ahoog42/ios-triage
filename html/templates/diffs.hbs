@@ -7,7 +7,8 @@
     <!-- Begin page content -->
     <div class="container">
 
-    <h2>Diffs activated</h2>
+{{#if diff}}
+    <h2>Diff between two extractions</h2>
 
     {{#each diff}}
 <table class="table table-striped table-bordered">
@@ -34,6 +35,11 @@
 </table>
 <br />
   {{/each}}
+
+{{else}}
+  <h2>Diffs not activatated</h2>
+  <p>To enable this feature, run `ios-triage` with two processed extraction directories (<a href="https://github.com/ahoog42/ios-triage/blob/master/README.md">example</a>).
+{{/if}}
 
 <!-- footer partial -->
 {{> footer }}
