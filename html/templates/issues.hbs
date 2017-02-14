@@ -10,10 +10,12 @@
 <h2>Potential Issues</h2>
 
 <p>Issues Found: {{issues.summary.count}}</p>
-<p> Jump to issues:
+<p> Issue Summary:
+<ol>
 {{#each issues.details}}
-  <a href="#issue{{@index}}">{{@index}}</a> |
+  <li><a href="#issue{{@index}}">{{this.title}}</a></li>
 {{/each}}
+</ol>
 
 <p>Issue details</p>
 
