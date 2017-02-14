@@ -1099,6 +1099,16 @@ function findIssues (dir, callback) {
     issues.details.push(issueDetails);
   }
 
+  if (data.apps.summary.nonAppleSigner > 0) {
+    issueCount++;
+    let issueDetails = {};
+    issueDetails.title = 'Developer signed apps found';
+    issueDetails.level = 'medium';
+    issueDetails.description = 'This device contains developer signed apps. There apps circumvent the App Store review and could possible contain malicious code.';
+    issueDetails.remediation = 'Inspect all non-Apple signed apps to ensure they are legitimate.';
+    issues.details.push(issueDetails);
+  }
+
   issues.summary.count = issueCount;
   logger.debug('findIssues complete, writing to %s', path.join(processedPath, 'issues.json'));
   logger.debug('issues object: %s', JSON.stringify(issues));
