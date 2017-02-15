@@ -1179,8 +1179,22 @@ function generateReport (dir, diffdir, callback) {
         delete dataRhs.device.details['com.apple.disk_usage.factory'].NANDInfo;
         delete dataRhs.device.details['com.apple.disk_usage'].NANDInfo;
 
+        // convert the lhs and rhs dates to human readable and add to object
+        let lhsDateEpoch = data.device.details.standard.TimeIntervalSince1970;
+        lhsDateEpoch = lhsDateEpoch.toString().replace('.', '').substring(0, 13);
+        let rhsDateEpoch = dataRhs.device.details.standard.TimeIntervalSince1970;
+        rhsDateEpoch = rhsDateEpoch.toString().replace('.', '').substring(0, 13);
+
+        const lhsDate = new Date(Number(lhsDateEpoch));
+        const rhsDate = new Date(Number(rhsDateEpoch));
+
         const diff = deepdiff(data, dataRhs);
         data.diff = diff;
+        data.diff.date = {};
+        data.diff.date.lhs = lhsDate.toString();
+        data.diff.date.rhs = rhsDate.toString();
+        // data.diff.date.lhs = lhsDateEpoch;
+        // data.diff.date.rhs = dataRhs.device.details.standard.TimeIntervalSince1970;
       }
 
       logger.debug(JSON.stringify(data));
