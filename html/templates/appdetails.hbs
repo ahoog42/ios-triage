@@ -9,26 +9,24 @@
 
 {{> detailstabs apps_active=true }}
 
+<p><a href="apps.html"><-- Back to app list</a></p>
+
+<p>Details for {{details.CFBundleName}} (bundle identifier: {{details.CFBundleIdentifier}})</p>
+
 <table class="table table-striped table-bordered">
   <thead>
     <tr>
-      <th>#</th>
-      <th>Name</th>
-      <th>Bundle Identifier</th>
-      <th>Version</th>
-      <th>Type</th>
+      <th>Key</th>
+      <th>Value</th>
     </tr>
   </thead>
   <tbody>
-{{#each apps.details}}
+{{#each details}}
     <tr>
-      <td>{{@index}}</td>
-      <td><a href="{{CFBundleIdentifier}}.html">{{CFBundleName}}</a></td>
-      <td>{{CFBundleIdentifier}}</td>
-      <td>{{CFBundleVersion}}</td>
-      <td>{{ApplicationType}}</td>
+      <td>{{@key}}</td>
+      <td>{{this}}</td>
     </tr>
-{{/each}}
+  {{/each}}
   </tbody>
 </table>
 

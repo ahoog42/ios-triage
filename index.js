@@ -1189,7 +1189,27 @@ function generateReport (dir, diffdir, callback) {
         return new handlebars.SafeString(JSON.stringify(object));
       });
 
-      // compile handlebarsjs templates, need to add diff json data files next
+      // write out detailed app reports
+      data.apps.details.forEach(function (appDetails) {
+        let app = {};
+        app.cli = pkg.name + ' v' + pkg.version;
+        app.details = appDetails;
+        logger.debug('create detail app report for %s', app.details.CFBundleIdentifier);
+        let templateFile = path.join(__base, 'html', 'templates', 'appdetails.hbs');
+        fs.readFile(templateFile, 'utf-8', function (error, source) {
+          const template = handlebars.compile(source);
+          const html = template(app);
+          const htmlFile = path.join(reportPath, app.details.CFBundleIdentifier + '.html');
+          fs.writeFile(htmlFile, html, 'utf8', function (err) {
+            if (err) {
+              logger.error('error writing html file (%s) disk with error: %s', htmlFile, err);
+            }
+          });
+          if (error) { logger.error('Error reading template file %s, error details: %s', templateFile, error); }
+        });
+      });
+          
+      // compile remaining handlebarsjs templates and write report files
       const templateList = ['index', 'issues', 'diffs', 'community', 'apps', 'device', 'crashreports', 'pprofiles', 'artifacts'];
       templateList.forEach(function (templateName) {
         let templateFile = __base + 'html/templates/' + templateName + '.hbs';
