@@ -1170,6 +1170,15 @@ function generateReport (dir, diffdir, callback) {
 
       const data = readProcessedJSON(dir, true);
       if (doDiff) {
+        // currently plist parse tries to convert data elements by base64 decoding them
+        // and making into an array of values. This really messes up diff and such so for now
+        // we'll delete these values for our diff comparision. 
+        // FIXME: change plist.parse to not munge the data nodes
+        delete data.device.details["com.apple.disk_usage.factory"].NANDInfo;
+        delete data.device.details["com.apple.disk_usage"].NANDInfo;
+        delete dataRhs.device.details["com.apple.disk_usage.factory"].NANDInfo;
+        delete dataRhs.device.details["com.apple.disk_usage"].NANDInfo;
+
         const diff = deepdiff(data, dataRhs);
         data.diff = diff;
       }
