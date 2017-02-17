@@ -1,8 +1,8 @@
-# ios-triage [![Build Status](https://travis-ci.org/ahoog42/ios-triage.svg?branch=master)](https://travis-ci.org/ahoog42/ios-triage)
+# ios-triage [![Build Status](https://travis-ci.org/ahoog42/ios-triage.svg?branch=master)](https://travis-ci.org/ahoog42/ios-triage) [![Dependencies](https://img.shields.io/david/ahoog42/ios-triage.svg?style=flat-square)](https://david-dm.org/ahoog42/ios-triage)
 Node.js cli for iOS incident response. Program will extract, process and report (including diffs) on iOS device and app telemetry.
 
 ## Installation
-Currently working on OSX and Linux. This program depends on the excellent libimobiledevice project.
+Currently working on OSX and Linux. This program depends on the excellent [libimobiledevice](http://www.libimobiledevice.org/) project.
 
 ### OS specific steps
 
