@@ -37,7 +37,7 @@ nvm use node
 ### Clone ios-triage, install and link
 
 ```
-git clone git@github.com:ahoog42/ios-triage.git
+git clone https://github.com/ahoog42/ios-triage.git
 
 cd ios-triage
 npm install
