@@ -39,7 +39,7 @@ nvm use node
 ```
 git clone git@github.com:ahoog42/ios-triage.git
 
-cd ios-install
+cd ios-triage
 npm install
 npm link
 ```
