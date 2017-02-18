@@ -97,9 +97,16 @@ program.parse(process.argv);
 // if program was called with no arguments, show help.
 if (program.args.length === 0) {
   program.help();
+} else {
+  // Checking to sure passed command (rawArgs[2]) is valid.
+  // Adpated from https://github.com/tj/commander.js/issues/57#issue-4481445
+  const validCommands = program.commands.map(function(cmd){
+    return cmd._name;
+  });
+  if (validCommands.indexOf(program.rawArgs[2]) === -1) {
+    logger.error('Invalid command "%s". Run `ios-triage --help`', program.rawArgs[2]);
+  }
 }
-// reverted check to see if command was valid. would like to get
-// this to work. https://github.com/tj/commander.js/issues/57#issue-4481445
 
 function setWorkingDirectory (userOutputDir, udid, currentEpoch) {
   let workingDir = '';
