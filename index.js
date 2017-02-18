@@ -100,7 +100,7 @@ if (program.args.length === 0) {
 } else {
   // Checking to sure passed command (rawArgs[2]) is valid.
   // Adpated from https://github.com/tj/commander.js/issues/57#issue-4481445
-  const validCommands = program.commands.map(function(cmd){
+  const validCommands = program.commands.map(function (cmd) {
     return cmd._name;
   });
   if (validCommands.indexOf(program.rawArgs[2]) === -1) {
