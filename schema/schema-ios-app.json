@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "id": "http://www.andrewhoog.com/schemas/ios-app-metadata.json#",
+  "title": "ios-app",
+  "description": "iOS app plist parsed by plist npm module",
+  "type": "object",
+  "properties": {
+    "CFBundleURLTypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "CFBundleURLName": { "type": "string" },
+          "CFBundleURLSchemes": { "type": "array" },
+          "CFBundleTypeRole": { "type": "string" }
+        },
+      "additionalProperties": false
+      }
+    },
+    "CFBundleInfoDictionaryVersion": { "type": "string"},
+    "DTPlatformVersion": { "type": "string"},
+    "Entitlements": {
+      "type": "object",
+      "properties": {
+        "application-identifier": { "type": "string"},
+        "keychain-access-groups": { "type": "array"},
+        "com.apple.developer.default-data-protection": { "type": "string"},
+        "com.apple.developer.team-identifier": { "type": "string"},
+        "com.apple.security.application-groups": { "type": "array"},
+        "aps-environment": { "type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "CFBundleName": { "type": "string"},
+    "DTSDKName": { "type": "string"},
+    "ApplicationType": { "type": "string"},
+    "GroupContainers": { 
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "CFBundleIcons": {
+      "type": "object",
+      "properties": {
+        "CFBundlePrimaryIcon": {
+          "type": "object",
+          "properties": {
+            "CFBundleIconFiles": { 
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "Container": { "type": "string"},
+    "LSRequiresIPhoneOS": { "type": "boolean"},
+    "CFBundleDisplayName": { "type": "string"},
+    "NSLocationWhenInUseUsageDescription": { "type": "string"},
+    "NewRelicApplicationIdKey": { "type": "string"},
+    "DTSDKBuild": { "type": "string"},
+    "HasSettingsBundle": { "type": "boolean"},
+    "CFBundleShortVersionString": { "type": "string"},
+    "CFBundleSupportedPlatforms": { 
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["iPhoneOS"]
+      }
+    },
+    "UISupportedInterfaceOrientations": { 
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["UIInterfaceOrientationPortrait"]
+      }
+    },
+    "BuildMachineOSBuild": { "type": "string"},
+    "SignerIdentity": { "type": "string"},
+    "CFBundlePackageType": { "type": "string"},
+    "EnvironmentVariables": {
+      "type": "object",
+      "properties": {
+        "TMPDIR": { "type": "string"}, 
+        "HOME": { "type": "string"}, 
+        "CFFIXED_USER_HOME": { "type": "string"}
+      },
+      "additionalProperties": false
+    }, 
+    "MinimumOSVersion": { "type": "string"},
+    "DTPlatformBuild": { "type": "string"},
+    "CFBundleVersion": { "type": "string"},
+    "CFBundleDevelopmentRegion": { "type": "string"},
+    "UIAppFonts": { 
+      "type": "array",
+      "items": { "type": "string"}
+    },
+    "SequenceNumber": { "type": "integer"},
+    "ApplicationDSID": { "type": "integer"},
+    "IsUpgradeable": { "type": "boolean"},
+    "DTXcodeBuild": { "type": "string"},
+    "BuildType": { "type": "string"},
+    "UIDeviceFamily": { 
+      "type": "array",
+      "items": { "type": "integer" }
+    },
+    "WatchGroupId": { "type": "string"},
+    "CFBundleNumericVersion": { "type": "integer"},
+    "ParseApplicationIdKey": { "type": "string"},
+    "UILaunchStoryboardName": { "type": "string"},
+    "CFBundleIdentifier": { "type": "string"},
+    "DebugAccessibilityLabels": { "type": "boolean"},
+    "Fabric": { 
+      "type": "object",
+      "properties": {
+        "APIKey": { "type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "EULAVersion": { "type": "string"},
+    "DTXcode": { "type": "string"},
+    "CrashlyticsApplicationIdKey": { "type": "string"},
+    "ParseClientIdKey": { "type": "string"},
+    "CFBundleExecutable": { "type": "string"},
+    "NSAppTransportSecurity": { 
+      "type": "object",
+      "properties": {
+        "NSExceptionDomains": { "type": "object"},
+        "NSAllowsArbitraryLoads": { "type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "CFBundleSignature": { "type": "string"},
+    "Path": { "type": "string"},
+    "DTPlatformName": { "type": "string"},
+    "ITSAppUsesNonExemptEncryption": { "type": "boolean"},
+    "DTCompiler": { "type": "string"}
+  },
+  "additionalProperties": false
+}
