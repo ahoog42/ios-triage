@@ -5,6 +5,13 @@
   "description": "iOS app plist parsed by plist npm module",
   "type": "object",
   "properties": {
+    "UIRequiredDeviceCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["armv7"]
+      }
+    },
     "CFBundleURLTypes": {
       "type": "array",
       "items": {
@@ -27,7 +34,21 @@
         "com.apple.developer.default-data-protection": { "type": "string"},
         "com.apple.developer.team-identifier": { "type": "string"},
         "com.apple.security.application-groups": { "type": "array"},
-        "aps-environment": { "type": "string"}
+        "aps-environment": { "type": "string"},
+        "com.apple.private.xpc.launchd.app-server": { "type": "boolean"},
+        "com.apple.private.kernel.jetsam": { "type": "boolean"},
+        "com.apple.CommCenter.Preferences-delete": { "type": "boolean"},
+        "com.apple.authkit.writer.internal": { "type": "boolean"},
+        "com.apple.private.ids.registration-reset": { "type": "boolean"},
+        "allow-obliterate-device": { "type": "boolean"},
+        "com.apple.backboard.client": { "type": "boolean"},
+        "com.apple.QuartzCore.secure-mode": { "type": "boolean"},
+        "com.apple.private.kernel.darkboot": { "type": "boolean"},
+        "com.apple.keystore.stash.access": { "type": "boolean"},
+        "com.apple.private.bmk.allow": { "type": "boolean"},
+        "com.apple.keystore.device": { "type": "boolean"},
+        "com.apple.QuartzCore.displayable-context": { "type": "boolean"},
+        "com.apple.wifi.manager-access": { "type": "boolean"}
       },
       "additionalProperties": false
     },
@@ -75,7 +96,11 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["UIInterfaceOrientationPortrait"]
+        "enum": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
       }
     },
     "BuildMachineOSBuild": { "type": "string"},
