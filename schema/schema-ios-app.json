@@ -12,6 +12,14 @@
         "enum": ["armv7"]
       }
     },
+    "SBAppTags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["hidden"]
+      }
+    },
+    "UIRequiresFullScreen": { "type": "boolean"},
     "CFBundleURLTypes": {
       "type": "array",
       "items": {
@@ -48,7 +56,77 @@
         "com.apple.private.bmk.allow": { "type": "boolean"},
         "com.apple.keystore.device": { "type": "boolean"},
         "com.apple.QuartzCore.displayable-context": { "type": "boolean"},
-        "com.apple.wifi.manager-access": { "type": "boolean"}
+        "com.apple.wifi.manager-access": { "type": "boolean"},
+        "com.apple.authkit.client.private": { "type": "boolean"},
+        "com.apple.mobile.deleted.AllowFreeSpace": { "type": "boolean"},
+        "com.apple.security.exception.mach-lookup.global-name": { 
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "com.apple.familycircle.agent",
+              "com.apple.routined.registration"
+            ]
+          }
+        },
+        "com.apple.developer.playable-content": { "type": "boolean"},
+        "com.apple.private.security.container-required": { "type": "boolean"},
+        "com.apple.private.tcc.allow": { 
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "kTCCServiceMediaLibrary"
+            ]
+          }
+        },
+        "com.apple.mobile.keybagd.UserManager.logout": { "type": "boolean"},
+        "com.apple.security.exception.files.absolute-path.read-only": { 
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "/private/var/mobile/Library/Preferences/com.apple.restrictionspassword.plist"
+            ]
+          }
+        },
+        "com.apple.telephony.cupolicy-rw-access": { "type": "boolean"},
+        "platform-application": { "type": "boolean"},
+        "com.apple.springboard.opensensitiveurl": { "type": "boolean"},
+        "com.apple.CoreRoutine.Application": { "type": "boolean"},
+        "com.apple.private.canModifyAppLinkPermissions": { "type": "boolean"},
+        "seatbelt-profiles": { 
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "container2"
+            ]
+          }
+        },
+        "com.apple.developer.pass-type-identifiers": { 
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "*.pass.com.apple.itunes.storecredit"
+            ]
+          }
+        },
+        "com.apple.private.canGetAppLinkInfo": { "type": "boolean"},
+        "com.apple.private.accounts.allaccounts": { "type": "boolean"},
+        "com.apple.private.corespotlight.internal": { "type": "boolean"},
+        "com.apple.accounts.facebook.defaultaccess": { "type": "boolean"},
+        "com.apple.container2": { "type": "boolean"},
+        "com.apple.excludes-extensions": { "type": "boolean"},
+        "com.apple.itunesstored.private": { "type": "boolean"},
+        "fairplay-client": { "type": "string"},
+        "com.apple.private.social.facebook.like": { "type": "boolean"},
+        "com.apple.managedconfiguration.profiled-access": { "type": "boolean"},
+        "com.apple.private.mobileinstall.upgrade-enabled": { "type": "boolean"},
+        "com.apple.CoreTelephony.DataUsageInfo.allow": { "type": "boolean"},
+        "com.apple.private.coreservices.alwaysEligibleEvenWhenInBackground": { "type": "boolean"},
+        "com.apple.springboard.shortcutitems.customimage": { "type": "boolean"}
       },
       "additionalProperties": false
     },
@@ -99,7 +177,8 @@
         "enum": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationLandscapeLeft",
-          "UIInterfaceOrientationLandscapeRight"
+          "UIInterfaceOrientationLandscapeRight",
+          "UIInterfaceOrientationPortraitUpsideDown"
         ]
       }
     },
@@ -162,7 +241,32 @@
     "Path": { "type": "string"},
     "DTPlatformName": { "type": "string"},
     "ITSAppUsesNonExemptEncryption": { "type": "boolean"},
-    "DTCompiler": { "type": "string"}
+    "DTCompiler": { "type": "string"},
+    "_LSSupportsRemoval": { "type": "boolean"},
+    "NSUserActivityTypes": { "type": "array"},
+    "SBAppUsesLocalNotifications": { "type": "boolean"},
+    "SKRespectApplicationUserInterfaceLayoutDirection": { "type": "boolean"},
+    "UIViewControllerBasedStatusBarAppearance": { "type": "boolean"},
+    "UIStatusBarStyle": { "type": "string"},
+    "LSApplicationCategoryType": { "type": "null"},
+    "UIRequiresPersistentWiFi": { "type": "boolean"},
+    "MPSupportsExternallyPlayableContent": { "type": "boolean"},
+    "UIBackgroundModes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "audio",
+          "fetch",
+          "notif"
+        ]
+      }
+    },
+    "SBUninstallIconOverrideStringsFile": { "type": "string"},
+    "CFBundleAllowMixedLocalizations": { "type": "boolean"},
+    "UIPrerenderedIcon": { "type": "boolean"},
+    "CoreSpotlightContinuation": { "type": "boolean"},
+    "UIBrowsableContentSupportsSectionedBrowsing": { "type": "boolean"}
   },
   "additionalProperties": false
 }
