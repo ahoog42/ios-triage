@@ -25,7 +25,7 @@ sudo apt-get install ideviceinstaller libimobiledevice-utils build-essential lib
 Remaining steps are for both OSX and Linux.
 
 ```
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | bash
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.1/install.sh | bash
 
 export NVM_DIR="/home/hiro/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
