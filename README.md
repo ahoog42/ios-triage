@@ -27,9 +27,6 @@ Remaining steps are for both OSX and Linux.
 ```
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.1/install.sh | bash
 
-export NVM_DIR="/home/hiro/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
 nvm install node
 nvm use node
 ```
