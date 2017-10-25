@@ -926,7 +926,7 @@ function processCrashReports (dir, callback) {
           count++;
           // example line: Copy: DiagnosticLogs/security.log.20170119T084705Z
           // split on ' ' and push the 2nd field to an array
-          filenames.push(line.split(' ')[1]);
+          filenames.push(line.split('Copy: ')[1]);
         }
       })
       .on('end', function () {
