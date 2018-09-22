@@ -205,10 +205,17 @@ function getUDID (callback) {
     in the future. The work around is to test the length for retval and if it is
     41, then we have a UDID returned!
     */
-    if (retval.length === 41) {
+    let udidStr = "";
+    if (retval.length == 82) {
+      // when an idevice has been configured for WiFi sync, idevice_id will
+      // return the UDID twice. Handling this sitaution with hardcoding :-)
+      udidStr = String.fromCharCode.apply(null, retval.slice(40));
+      logger.info('Authorized iDevice found, UDID: %s', udidStr.trim());
+      callback(null, udidStr.trim());
+    } else if (retval.length === 41) {
       // found a valid udid so return null error and uuid value
       // first let's make this a string and trim any newlines
-      const udidStr = String.fromCharCode.apply(null, retval);
+      udidStr = String.fromCharCode.apply(null, retval);
       logger.info('Authorized iDevice found, UDID: %s', udidStr.trim());
       callback(null, udidStr.trim());
     } else {
