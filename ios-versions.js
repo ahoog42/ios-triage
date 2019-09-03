@@ -6,5 +6,5 @@
 // https://api.ineal.me/tss/status
 
 module.exports = {
-  LATEST_IOS_VERSION: '10.2.1'
+  LATEST_IOS_VERSION: '12.4.1'
 };
