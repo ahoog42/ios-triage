@@ -1,6 +1,6 @@
 {
   "name": "ios-triage",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "CLI for iOS incident response",
   "main": "index.js",
   "scripts": {
@@ -28,19 +28,19 @@
   },
   "homepage": "https://github.com/ahoog42/ios-triage#readme",
   "dependencies": {
-    "async": "^2.1.4",
-    "commander": "^2.9.0",
-    "copy-dir": "^0.3.0",
-    "deep-diff": "^0.3.4",
-    "handlebars": "^4.0.6",
-    "plist": "^2.0.1",
-    "read-chunk": "^2.0.0",
+    "async": "^2.6.1",
+    "commander": "^2.18.0",
+    "copy-dir": "^0.4.0",
+    "deep-diff": "^1.0.2",
+    "handlebars": "^4.2.0",
+    "plist": "^3.0.1",
+    "read-chunk": "^3.0.0",
     "split": "^1.0.0",
-    "winston": "^2.3.0",
+    "winston": "^3.1.0",
     "xmldom": "^0.1.27"
   },
   "devDependencies": {
-    "semistandard": "^9.2.1"
+    "semistandard": "^12.0.1"
   },
   "semistandard": {
     "ignore": [
