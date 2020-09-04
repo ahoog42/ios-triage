@@ -32,7 +32,7 @@
     "commander": "^2.18.0",
     "copy-dir": "^0.4.0",
     "deep-diff": "^1.0.2",
-    "handlebars": "^4.2.0",
+    "handlebars": "^4.4.5",
     "plist": "^3.0.1",
     "read-chunk": "^3.0.0",
     "split": "^1.0.0",
