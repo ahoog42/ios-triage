@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/ahoog42/ios-triage#readme",
   "dependencies": {
-    "async": "^2.6.1",
+    "async": "^3.2.2",
     "commander": "^2.18.0",
     "copy-dir": "^0.4.0",
     "deep-diff": "^1.0.2",
